@@ -752,7 +752,7 @@ jobs:
             - restore-fe-deps-cache
             - run:
                 name: Run yarn to install deps
-                command: SAUCE_CONNECT_DOWNLOAD_ON_INSTALL=true yarn;
+                command: yarn;
                 no_output_timeout: 10m
             - save_cache:
                 name: Cache frontend dependencies
@@ -1008,9 +1008,6 @@ jobs:
             - restore_cache:
                 name: Restore cached uberjar built in previous step
                 <<: *CacheKeyUberjar
-            - run:
-                name: Generate version file
-                command: ./bin/build version
       - store_artifacts:
           path: /home/circleci/metabase/metabase/cypress
       - store_test_results:
