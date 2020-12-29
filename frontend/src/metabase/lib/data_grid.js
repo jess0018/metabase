@@ -3,13 +3,50 @@ import { getIn } from "icepick";
 
 import { formatValue } from "metabase/lib/formatting";
 
+export function isPivotGroupColumn(col) {
+  return col.name === "pivot-grouping";
+}
+
+// This pulls apart the different aggregations that were packed into one result set.
+// There's a column indicating which breakouts were used to compute that row.
+// We use that column to split apart the data and convert the field refs to indexes.
+function splitPivotData(data, rowIndexes, columnIndexes) {
+  const groupIndex = data.cols.findIndex(isPivotGroupColumn);
+  const columns = data.cols.filter(col => !isPivotGroupColumn(col));
+  const breakouts = columns.filter(col => col.source === "breakout");
+
+  const pivotData = _.chain(data.rows)
+    .groupBy(row => row[groupIndex])
+    .pairs()
+    .map(([key, rows]) => {
+      key = parseInt(key);
+      const indexes = _.range(breakouts.length).filter(
+        index => !((1 << index) & key),
+      );
+      const keyAsIndexes = JSON.stringify(indexes);
+      const rowsWithoutColumn = rows.map(row =>
+        row.slice(0, groupIndex).concat(row.slice(groupIndex + 1)),
+      );
+
+      return [keyAsIndexes, rowsWithoutColumn];
+    })
+    .object()
+    .value();
+  return { pivotData, columns };
+}
+
 export function multiLevelPivot(
-  pivotData,
-  columns,
+  data,
   columnColumnIndexes,
   rowColumnIndexes,
   valueColumnIndexes,
 ) {
+  const { pivotData, columns } = splitPivotData(
+    data,
+    rowColumnIndexes,
+    columnColumnIndexes,
+  );
+
   // we build a tree for each tuple of pivoted column/row values seen in the data
   const columnColumnTree = [];
   const rowColumnTree = [];
@@ -18,11 +55,10 @@ export function multiLevelPivot(
   const valuesByKey = {};
 
   // loop over the primary rows to build trees of column/row header data
-  for (const row of pivotData[
-    JSON.stringify(
-      _.range(columnColumnIndexes.length + rowColumnIndexes.length),
-    )
-  ]) {
+  const primaryRowsKey = JSON.stringify(
+    _.range(columnColumnIndexes.length + rowColumnIndexes.length),
+  );
+  for (const row of pivotData[primaryRowsKey]) {
     // mutate the trees to add the tuple from the current row
     updateValueObject(row, columnColumnIndexes, columnColumnTree);
     updateValueObject(row, rowColumnIndexes, rowColumnTree);
@@ -31,7 +67,11 @@ export function multiLevelPivot(
     const valueKey = JSON.stringify(
       columnColumnIndexes.concat(rowColumnIndexes).map(index => row[index]),
     );
-    valuesByKey[valueKey] = valueColumnIndexes.map(index => row[index]);
+    const values = valueColumnIndexes.map(index => row[index]);
+    valuesByKey[valueKey] = {
+      values,
+      data: row.map((value, index) => ({ value, col: columns[index] })),
+    };
   }
 
   // build objects to look up subtotal values
@@ -47,21 +87,31 @@ export function multiLevelPivot(
     }
   }
 
-  const valueFormatters = valueColumnIndexes.map(index => value =>
-    formatValue(value, { column: columns[index] }),
+  // pivot tables have a lot of repeated values, so we use memoized formatters for each column
+  const [valueFormatters, topIndexFormatters, leftIndexFormatters] = [
+    valueColumnIndexes,
+    columnColumnIndexes,
+    rowColumnIndexes,
+  ].map(indexes =>
+    indexes.map(index =>
+      _.memoize(
+        value => formatValue(value, { column: columns[index] }),
+        value => [value, index].join(),
+      ),
+    ),
   );
 
   const valueColumns = valueColumnIndexes.map(index => columns[index]);
   const topIndex = getIndex(columnColumnTree, { valueColumns });
   const leftIndex = getIndex(rowColumnTree, {});
 
-  const columnCount =
-    topIndex.length + (topIndex.length > 1 && leftIndex.length > 0 ? 1 : 0);
-  const rowCount =
-    leftIndex.length + (leftIndex.length > 1 && topIndex.length > 0 ? 1 : 0);
+  const columnCount = getIndexCount(topIndex);
+  const rowCount = getIndexCount(leftIndex);
   return {
     topIndex,
     leftIndex,
+    topIndexFormatters,
+    leftIndexFormatters,
     columnCount,
     rowCount,
     getRowSection: createRowSectionGetter({
@@ -76,6 +126,15 @@ export function multiLevelPivot(
   };
 }
 
+function getIndexCount({ length }) {
+  return (
+    // we need at least one row/column
+    (length === 0 ? 1 : length) +
+    // if there are multiple rows/columns, add one for totals
+    (length > 1 ? 1 : 0)
+  );
+}
+
 function createRowSectionGetter({
   valuesByKey,
   columnColumnTree,
@@ -87,8 +146,8 @@ function createRowSectionGetter({
 }) {
   const formatValues = values =>
     values === undefined
-      ? new Array(valueFormatters.length).fill(null)
-      : values.map((v, i) => valueFormatters[i](v));
+      ? Array(valueFormatters.length).fill({ value: null })
+      : values.map((v, i) => ({ value: valueFormatters[i](v) }));
   const getSubtotals = (breakoutIndexes, values) =>
     formatValues(
       getIn(
@@ -99,9 +158,9 @@ function createRowSectionGetter({
           ),
         ),
       ),
-    );
+    ).map(value => ({ ...value, isSubtotal: true }));
 
-  return (columnIndex, rowIndex) => {
+  const getter = (columnIndex, rowIndex) => {
     const rows =
       rowIndex >= rowColumnTree.length
         ? [[]]
@@ -137,7 +196,7 @@ function createRowSectionGetter({
           : [];
 
       return rows
-        .map(row => [getSubtotals(rowColumnIndexes, row)])
+        .map(row => getSubtotals(rowColumnIndexes, row))
         .concat(subtotalRows);
     }
 
@@ -156,12 +215,16 @@ function createRowSectionGetter({
     return rows
       .map(row =>
         columns.flatMap(col => {
-          const values = valuesByKey[JSON.stringify(col.concat(row))];
-          return formatValues(values);
+          const { values, data } =
+            valuesByKey[JSON.stringify(col.concat(row))] || {};
+          return formatValues(values).map(o =>
+            data === undefined ? o : { ...o, clicked: { data } },
+          );
         }),
       )
       .concat(subtotalRows);
   };
+  return _.memoize(getter, (i1, i2) => [i1, i2].join());
 }
 
 function enumerate({ value, children }, path = []) {
@@ -174,7 +237,7 @@ function enumerate({ value, children }, path = []) {
 
 function getIndex(values, { valueColumns = [], depth = 0 } = {}) {
   if (values.length === 0) {
-    if (valueColumns.length > 1 || depth === 0) {
+    if (valueColumns.length > 1 || (depth === 0 && valueColumns.length > 0)) {
       // if we have multiple value columns include their column names
       const colNames = valueColumns.map(col => ({
         value: col.display_name,
@@ -185,11 +248,12 @@ function getIndex(values, { valueColumns = [], depth = 0 } = {}) {
     return [];
   }
   return values.map(({ value, children }) => {
-    const foo = _.zip(
+    const lowerLayers = _.zip(
       ...getIndex(children, { valueColumns, depth: depth + 1 }),
     ).map(a => a.flat());
-    const span = foo.length === 0 ? 1 : foo[foo.length - 1].length;
-    return [[{ value, span }], ...foo];
+    const span =
+      lowerLayers.length === 0 ? 1 : lowerLayers[lowerLayers.length - 1].length;
+    return [[{ value, span }], ...lowerLayers];
   });
 }
 

@@ -1,4 +1,8 @@
-import { signInAsAdmin, restore } from "__support__/cypress";
+import {
+  signInAsAdmin,
+  restore,
+  visitQuestionAdhoc,
+} from "__support__/cypress";
 import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID, PRODUCTS, PEOPLE } = SAMPLE_DATASET;
@@ -12,17 +16,11 @@ describe("scenarios > visualizations > pivot tables", () => {
   });
 
   it("should be created from an ad-hoc question", () => {
-    // We're intentionally setting the visualization to `bar` here
-    createAndVisitTestQuestion({ display: "bar" });
-
-    // By changing the visualization type, we make this an "ad-hoc" question
-    cy.findByText("Visualization").click();
-    cy.get(".Icon-pivot_table")
-      .should("be.visible")
-      .click();
+    visitQuestionAdhoc({ dataset_query: testQuery, display: "pivot" });
 
     cy.findByText(/Count by Users? → Source and Products? → Category/); // ad-hoc title
 
+    cy.findByText("Settings").click();
     assertOnPivotSettings();
     assertOnPivotTable();
   });
@@ -86,27 +84,48 @@ describe("scenarios > visualizations > pivot tables", () => {
       cy.findByText("3,976");
     });
   });
+
+  it("should be able to use binned numeric dimension as a grouping (metabase#14136)", () => {
+    // Sample dataset Orders > Count by Subtotal: Auto binned
+    cy.visit(
+      "/question#eyJkYXRhc2V0X3F1ZXJ5Ijp7InR5cGUiOiJxdWVyeSIsInF1ZXJ5Ijp7InNvdXJjZS10YWJsZSI6MiwiYWdncmVnYXRpb24iOltbImNvdW50Il1dLCJicmVha291dCI6W1siYmlubmluZy1zdHJhdGVneSIsWyJmaWVsZC1pZCIsMTRdLCJkZWZhdWx0Il1dfSwiZGF0YWJhc2UiOjF9LCJkaXNwbGF5IjoiYmFyIiwidmlzdWFsaXphdGlvbl9zZXR0aW5ncyI6e319",
+    );
+    cy.findByText("Count by Subtotal: Auto binned");
+
+    cy.findByText("Visualization").click();
+    cy.get(".Icon-pivot_table").click({ force: true });
+
+    cy.get(".Visualization").within(() => {
+      cy.findByText("Subtotal");
+      cy.findByText("Count");
+      cy.findByText("2,720");
+      cy.findByText(/Grand totals/i);
+      cy.findByText("18,760");
+    });
+  });
 });
+
+const testQuery = {
+  type: "query",
+  query: {
+    "source-table": ORDERS_ID,
+    aggregation: [["count"]],
+    breakout: [
+      ["fk->", ["field-id", ORDERS.USER_ID], ["field-id", PEOPLE.SOURCE]],
+      [
+        "fk->",
+        ["field-id", ORDERS.PRODUCT_ID],
+        ["field-id", PRODUCTS.CATEGORY],
+      ],
+    ],
+  },
+  database: 1,
+};
 
 function createAndVisitTestQuestion({ display = "pivot" } = {}) {
   cy.request("POST", "/api/card", {
     name: QUESTION_NAME,
-    dataset_query: {
-      type: "query",
-      query: {
-        "source-table": ORDERS_ID,
-        aggregation: [["count"]],
-        breakout: [
-          ["fk->", ["field-id", ORDERS.USER_ID], ["field-id", PEOPLE.SOURCE]],
-          [
-            "fk->",
-            ["field-id", ORDERS.PRODUCT_ID],
-            ["field-id", PRODUCTS.CATEGORY],
-          ],
-        ],
-      },
-      database: 1,
-    },
+    dataset_query: testQuery,
     display,
     description: null,
     visualization_settings: {},

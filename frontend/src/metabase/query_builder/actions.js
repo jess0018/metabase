@@ -838,13 +838,18 @@ export const updateQuestion = (
     // We have special logic when going to, coming from, or updating a pivot table.
     const isPivot = newQuestion.display() === "pivot";
     const wasPivot = oldQuestion.display() === "pivot";
+    const queryHasBreakouts =
+      isPivot &&
+      newQuestion.isStructured() &&
+      newQuestion.query().breakouts().length > 0;
 
-    if (isPivot && !wasPivot) {
+    // we can only pivot queries with breakouts
+    if (isPivot && queryHasBreakouts) {
       // compute the pivot setting now so we can query the appropriate data
       const series = assocIn(
         getRawSeries(getState()),
-        [0, "card", "display"],
-        "pivot",
+        [0, "card"],
+        newQuestion.card(),
       );
       const key = "pivot_table.column_split";
       const setting = getQuestionWithDefaultVisualizationSettings(
@@ -1086,7 +1091,6 @@ export const queryCompleted = (question, queryResults) => {
     const dirty =
       !originalQuestion ||
       (originalQuestion && question.isDirtyComparedTo(originalQuestion));
-    console.log({ data, originalQuestion, dirty, question });
     if (dirty) {
       // Only update the display if the question is new or has been changed.
       // Otherwise, trust that the question was saved with the correct display.

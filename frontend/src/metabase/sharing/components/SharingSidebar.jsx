@@ -7,9 +7,11 @@ import { Flex } from "grid-styled";
 import Card from "metabase/components/Card";
 import DeleteModalWithConfirm from "metabase/components/DeleteModalWithConfirm";
 import EmailAttachmentPicker from "metabase/sharing/components/EmailAttachmentPicker";
+import ExternalLink from "metabase/components/ExternalLink";
 import Icon from "metabase/components/Icon";
 import Label from "metabase/components/type/Label";
 import Subhead from "metabase/components/type/Subhead";
+import Text from "metabase/components/type/Text";
 import Link from "metabase/components/Link";
 import ModalWithTrigger from "metabase/components/ModalWithTrigger";
 import RecipientPicker from "metabase/pulse/components/RecipientPicker";
@@ -28,6 +30,7 @@ import { push, goBack } from "react-router-redux";
 import { connect } from "react-redux";
 
 import { cleanPulse, createChannel } from "metabase/lib/pulse";
+import MetabaseSettings from "metabase/lib/settings";
 
 import {
   getPulseId,
@@ -497,6 +500,20 @@ class SharingSidebar extends React.Component {
     const { editingMode } = this.state;
     const { pulse, formInput, pulseList, onCancel } = this.props;
 
+    const caveatMessage = (
+      <Text className="mx4 my2 p2 bg-light text-dark rounded">{jt`${(
+        <span className="text-bold">Note:</span>
+      )} charts in your subscription won't look the same as in your dashboard. ${(
+        <ExternalLink
+          className="link"
+          target="_blank"
+          href={MetabaseSettings.docsUrl("users-guide/10-pulses")}
+        >
+          Learn more
+        </ExternalLink>
+      )}.`}</Text>
+    );
+
     // protect from empty values that will mess this up
     if (formInput === null || pulse === null || pulseList === null) {
       return <Sidebar />;
@@ -585,8 +602,8 @@ class SharingSidebar extends React.Component {
                 }
               }}
             >
-              <div className="p3">
-                <div className="flex align-center mb1">
+              <div className="px3 pt3 pb2">
+                <div className="flex align-center">
                   <Icon
                     name="mail"
                     className={cx(
@@ -602,7 +619,8 @@ class SharingSidebar extends React.Component {
                     className={cx({ "text-light": !emailSpec.configured })}
                   >{t`Email it`}</h3>
                 </div>
-                <div
+                <Text
+                  lineHeight={1.5}
                   className={cx("text-medium", {
                     "hover-child hover--inherit": emailSpec.configured,
                   })}
@@ -615,7 +633,7 @@ class SharingSidebar extends React.Component {
                     )} first.`}
                   {emailSpec.configured &&
                     t`You can send this dashboard regularly to users or email addresses.`}
-                </div>
+                </Text>
               </div>
             </Card>
             <Card
@@ -631,7 +649,7 @@ class SharingSidebar extends React.Component {
                 }
               }}
             >
-              <div className="p3">
+              <div className="px3 pt3 pb2">
                 <div className="flex align-center mb1">
                   <Icon
                     name={slackSpec.configured ? "slack_colorized" : "slack"}
@@ -645,7 +663,8 @@ class SharingSidebar extends React.Component {
                     className={cx({ "text-light": !slackSpec.configured })}
                   >{t`Send it to Slack`}</h3>
                 </div>
-                <div
+                <Text
+                  lineHeight={1.5}
                   className={cx("text-medium", {
                     "hover-child hover--inherit": slackSpec.configured,
                   })}
@@ -658,7 +677,7 @@ class SharingSidebar extends React.Component {
                     )}.`}
                   {slackSpec.configured &&
                     t`Pick a channel and a schedule, and Metabase will do the rest.`}
-                </div>
+                </Text>
               </div>
             </Card>
           </div>
@@ -691,10 +710,11 @@ class SharingSidebar extends React.Component {
           onCancel={onCancel}
           className="text-dark"
         >
-          <div className="pt4 flex align-center px4">
+          <div className="pt4 px4 flex align-center">
             <Icon name="mail" className="mr1" size={21} />
             <Heading>{t`Email this dashboard`}</Heading>
           </div>
+          {caveatMessage}
           <div className="my2 px4">
             <div>
               <div className="text-bold mb1">
@@ -794,6 +814,7 @@ class SharingSidebar extends React.Component {
             <Icon name="slack" className="mr1" size={21} />
             <Heading>{t`Send this dashboard to Slack`}</Heading>
           </div>
+          {caveatMessage}
           <div className="pb2 px4">
             {channelSpec.fields &&
               this.renderFields(channel, index, channelSpec)}
