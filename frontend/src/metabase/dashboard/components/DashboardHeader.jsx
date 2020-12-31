@@ -33,6 +33,8 @@ import type {
 } from "metabase-types/types/Dashboard";
 import { Link } from "react-router";
 
+import { GET,POST } from "metabase/lib/api";
+
 type Props = {
   location: LocationDescriptor,
 
@@ -126,6 +128,12 @@ export default class DashboardHeader extends Component {
       this.props.dashboard.id,
       this.props.location.query,
     );
+  }
+
+  onSetHome(){
+    const setHome= POST('/api/collection/sethome');
+    setHome({user_id:this.props.currentUser.id,home_dashboardId:this.props.dashboard.id});
+    alert('设为首页成功');
   }
 
   async onSave() {
@@ -357,6 +365,20 @@ export default class DashboardHeader extends Component {
         </PopoverWithTrigger>,
       );
     }
+
+    buttons.push(
+      <Tooltip key="set-home" tooltip="设为首页">
+        <a
+          data-metabase-event="Dashboard;Edit"
+          key="edit"
+          title={"将看板设为首页"}
+          className="text-brand-hover cursor-pointer"
+          onClick={() => this.onSetHome()}
+        >
+          <Icon className="text-brand-hover" name="all" size={18} />
+        </a>
+      </Tooltip>,
+    );
 
     return [buttons];
   }

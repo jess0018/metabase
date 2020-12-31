@@ -25,12 +25,12 @@
 (use-fixtures :once (fixtures/initialize :db))
 
 (deftest details->uri-test
-  (is (= "http://localhost:8080/"
-         (#'presto/details->uri {:host "localhost", :port 8080, :catalog "Sears", :ssl false} "/")))
+  (is (= "http://10.88.60.79:8080/"
+         (#'presto/details->uri {:host "10.88.60.79", :port 8080, :catalog "Sears", :ssl false} "/")))
   (is (= "https://localhost:8443/"
-         (#'presto/details->uri {:host "localhost", :port 8443, :catalog "Sears", :ssl true} "/")))
-  (is (= "http://localhost:8080/v1/statement"
-         (#'presto/details->uri {:host "localhost", :port 8080, :catalog "Sears", :ssl false} "/v1/statement"))))
+         (#'presto/details->uri {:host "10.88.60.79", :port 8443, :catalog "Sears", :ssl true} "/")))
+  (is (= "http://10.88.60.79:8080/v1/statement"
+         (#'presto/details->uri {:host "10.88.60.79", :port 8080, :catalog "Sears", :ssl false} "/v1/statement"))))
 
 (deftest details->request-test
   (driver/with-driver :presto

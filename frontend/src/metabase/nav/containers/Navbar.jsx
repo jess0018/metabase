@@ -344,6 +344,18 @@ export default class Navbar extends Component {
             </Link>
           )}
           {hasDataAccess && (
+            <Link
+              target="_blank"
+              to={Urls.managerQuestion()}
+              mx={2}
+              className="hide sm-show"
+            >
+            <Icon name="insight" size={18} />
+              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
+              {/* <Button medium>管理图表</Button> */}
+            </Link>
+          )}
+          {hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}

@@ -253,3 +253,11 @@ export const makeGetParameterMappingOptions = () => {
   );
   return getParameterMappingOptions;
 };
+
+export const getCards = state => state.dashboard.cards;
+export const getCardIdList = state => state.dashboard.cardList;
+export const getRevisions = state => state.dashboard.revisions;
+export const getCardList = createSelector(
+  [getCardIdList, getCards],
+  (cardIdList, cards) => cardIdList && cardIdList.map(id => cards[id]),
+);

@@ -139,6 +139,18 @@ function getDateStyleOptionsForUnit(
       abbreviate,
       separator,
     ),
+    
+    dateStyleOption("YYYY/M/D",unit,null,abbreviate,separator),
+    dateStyleOption("YYYY/MM/DD",unit,null,abbreviate,separator),
+    dateStyleOption("YYYY年MM月DD日",unit,null,abbreviate,separator),
+    dateStyleOption("YYYYMMDD",unit,null,abbreviate,separator),
+    dateStyleOption("MM/DD", unit, null, abbreviate, separator),
+    dateStyleOption("MMDD", unit, null, abbreviate, separator),
+    dateStyleOption("MM-DD", unit, null, abbreviate, separator),
+    dateStyleOption("M月", unit, null, abbreviate, separator),
+    dateStyleOption("MM月DD日", unit, null, abbreviate, separator),
+    dateStyleOption("DD", unit, null, abbreviate, separator),
+
   ];
   const seen = new Set();
   return options.filter(option => {

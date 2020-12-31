@@ -31,7 +31,7 @@ import {
 
 import NoResults from "assets/img/no_results.svg";
 
-import { assoc } from "icepick";
+import { assoc, setIn } from "icepick";
 import _ from "underscore";
 import cx from "classnames";
 
@@ -500,6 +500,17 @@ export default class Visualization extends React.PureComponent {
     }
 
     const CardVisualization = visualization;
+
+    let newSeries=series
+    if(settings["card.title"]){
+        newSeries = setIn(newSeries, [0, "card", "name"], settings["card.title"]) 
+    }
+    if(settings["card.skip_link"]){
+        newSeries =setIn(newSeries, [0, "card", "skip_link"], settings["card.skip_link"]) 
+    }
+    if(settings["card.skip_link_title"]){
+        newSeries =setIn(newSeries, [0, "card", "skip_link_title"], settings["card.skip_link_title"]) 
+    }
 
     return (
       <div
