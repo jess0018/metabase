@@ -16,6 +16,7 @@
              [interface :as mi]
              [native-query-snippet :refer [NativeQuerySnippet]]
              [permissions :as perms]
+             [user :refer [User]]
              [pulse :as pulse :refer [Pulse]]
              [pulse-card :refer [PulseCard]]]
             [metabase.models.collection
@@ -372,5 +373,13 @@
        dejsonify-graph
        (collection.graph/update-graph! namespace))
   (collection.graph/graph namespace))
+
+(api/defendpoint POST "/sethome"
+  "Set as home page."
+  [:as {{:keys [user_id home_dashboardId]} :body}]
+  {user_id   (s/maybe su/IntGreaterThanZero)
+  home_dashboardId   (s/maybe su/IntGreaterThanZero)}
+  ;; Now Set as home page
+  (db/update! User user_id :home_dashboardId home_dashboardId))
 
 (api/define-routes)

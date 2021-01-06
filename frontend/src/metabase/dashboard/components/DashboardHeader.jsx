@@ -34,6 +34,7 @@ import type {
 import { Link } from "react-router";
 
 import { GET,POST } from "metabase/lib/api";
+import { connect } from "react-redux";
 
 type Props = {
   location: LocationDescriptor,
@@ -79,6 +80,10 @@ type State = {
   modal: null | "parameters",
 };
 
+@connect(
+  ({ currentUser }) => ({ currentUser }),
+  null,
+)
 export default class DashboardHeader extends Component {
   props: Props;
   state: State = {
