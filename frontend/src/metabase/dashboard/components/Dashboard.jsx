@@ -370,6 +370,8 @@ function Sidebars(props) {
     dashcardData,
     setParameterFilteringParameters,
     isSharing,
+    isEditing,
+    isFullscreen,
   } = props;
   if (clickBehaviorSidebarDashcard) {
     return (
@@ -415,7 +417,8 @@ function Sidebars(props) {
     );
   }
 
-  if (isSharing) {
+  // SharingSidebar should only show if we're not editing or in fullscreen
+  if (!isEditing && !isFullscreen && isSharing) {
     return <SharingSidebar {...props} />;
   }
 
