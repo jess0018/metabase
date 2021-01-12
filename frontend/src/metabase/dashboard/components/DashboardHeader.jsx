@@ -374,7 +374,7 @@ export default class DashboardHeader extends Component {
     buttons.push(
       <Tooltip key="set-home" tooltip="设为首页">
         <a
-          data-metabase-event="Dashboard;Edit"
+          data-metabase-event="Dashboard;SetHome"
           key="edit"
           title={"将看板设为首页"}
           className="text-brand-hover cursor-pointer"

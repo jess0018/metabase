@@ -209,6 +209,8 @@ export const getRoutes = store => (
                 <ModalRoute path="history" modal={DashboardHistoryModal} />
                 <ModalRoute path="move" modal={DashboardMoveModal} />
                 <ModalRoute path="copy" modal={DashboardCopyModal} />
+                <ModalRoute path="details" modal={DashboardDetailsModal} />
+                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
             </Route>
         </Route>
 

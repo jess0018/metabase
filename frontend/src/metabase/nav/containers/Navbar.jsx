@@ -85,6 +85,7 @@ const SearchWrapper = Flex.extend`
 
 const SearchInput = styled.input`
   ${space} background-color: transparent;
+  padding: 8px 16px 8px 8px;
   width: 100%;
   border: none;
   color: white;
@@ -148,8 +149,9 @@ class SearchBar extends React.Component {
         >
           <Icon name="search" ml={["10px", 2]} />
           <SearchInput
-            py={2}
-            pr={[0, 2]}
+            w={1}
+            py={1}
+            pr={1}
             pl={1}
             ref={ref => (this.searchInput = ref)}
             value={searchText}
@@ -299,9 +301,9 @@ export default class Navbar extends Component {
         align="center"
         style={{ backgroundColor: color("nav") }}
         py={1}
-        pr={2}
+        pr={1}
       >
-        <Flex style={{ minWidth: 64 }} align="center" justify="center">
+        <Flex align="center" justify="center">
           <Link
             to="/"
             data-metabase-event={"Navbar;Logo"}
@@ -315,15 +317,18 @@ export default class Navbar extends Component {
               align="center"
               justify="center"
             >
-              <LogoIcon dark height={32} />
+              <LogoIcon dark width={100} height={25} />
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" pr={2} align="center">
-          <Box w={1} style={{ maxWidth: 500 }}>
+        <Flex className="flex-full z1" 
+          pl={0}
+          pr={0} align="center">
+          <Box w={1} pr={0}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
+              pr={0}
             />
           </Box>
         </Flex>
@@ -341,18 +346,6 @@ export default class Navbar extends Component {
             >
               <Icon name="insight" size={18} />
               <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
-            </Link>
-          )}
-          {hasDataAccess && (
-            <Link
-              target="_blank"
-              to={Urls.managerQuestion()}
-              mx={2}
-              className="hide sm-show"
-            >
-            <Icon name="insight" size={18} />
-              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
-              {/* <Button medium>管理图表</Button> */}
             </Link>
           )}
           {hasDataAccess && (
@@ -407,6 +400,20 @@ export default class Navbar extends Component {
                 <Icon size={18} p={"11px"} name="sql" tooltip={t`Write SQL`} />
               </Link>
             </IconWrapper>
+          )}
+          {hasDataAccess && (
+            <Link
+              mr={[1, 2]}
+              to={Urls.managerQuestion()}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Management Question`}
+            >
+              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
+            </Link>
           )}
           <ProfileLink {...this.props} />
         </Flex>

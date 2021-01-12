@@ -6,8 +6,8 @@ import { PLUGIN_LOGO_ICON_COMPONENTS } from "metabase/plugins";
 
 class DefaultLogoIcon extends Component {
   static defaultProps = {
-    size: 100,
-    height: 32,
+    width: 100,
+    height: 25,
   };
   static propTypes = {
     size: PropTypes.number,
@@ -17,9 +17,9 @@ class DefaultLogoIcon extends Component {
   };
 
   render() {
-    const { dark, height, width, size } = this.props;
+    const { dark, height, width } = this.props;
     return (
-      <img width={width || size} height={height || size} src="../app/assets/img/easybi_logo.png"></img>
+      <img width={width} height={height} src="../app/assets/img/easybi_logo.png"></img>
     );
   }
 }
