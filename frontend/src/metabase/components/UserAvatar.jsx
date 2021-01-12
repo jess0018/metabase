@@ -26,11 +26,11 @@ Avatar.defaultProps = {
 };
 
 function initial(name) {
-  return typeof name === "string" ? name.charAt(0).toUpperCase() : "";
+  return typeof name === "string" ? name.toUpperCase() : "";
 }
 
 function userInitials(user) {
-  return user ? initial(user.first_name) + initial(user.last_name) : null;
+  return user ? initial(user.last_name) : null;
 }
 
 const UserAvatar = styled(Avatar).attrs({

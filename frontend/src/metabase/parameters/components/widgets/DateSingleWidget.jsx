@@ -20,6 +20,6 @@ const DateSingleWidget = ({ value, setValue, onClose }) => {
 };
 
 DateSingleWidget.format = value =>
-  value ? moment(value).format("MMMM D, YYYY") : "";
+  value ? moment(value).format("YYYY-MM-DD") : "";
 
 export default DateSingleWidget;
