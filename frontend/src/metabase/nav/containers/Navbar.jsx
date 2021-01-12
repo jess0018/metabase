@@ -20,7 +20,7 @@ import LogoIcon from "metabase/components/LogoIcon";
 import Modal from "metabase/components/Modal";
 
 import ProfileLink from "metabase/nav/components/ProfileLink";
-import SearchBar from "metabase/nav/components/:";
+import SearchBar from "metabase/nav/components/SearchBar";
 
 import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 
@@ -214,9 +214,7 @@ export default class Navbar extends Component {
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" pr={2} align="center"
-          pl={0}
-          pr={0}>
+        <Flex className="flex-full z1" pl={0} pr={0} align="center">
           <Box w={1} pr={0} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
