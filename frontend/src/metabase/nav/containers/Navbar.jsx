@@ -20,7 +20,7 @@ import LogoIcon from "metabase/components/LogoIcon";
 import Modal from "metabase/components/Modal";
 
 import ProfileLink from "metabase/nav/components/ProfileLink";
-import SearchBar from "metabase/nav/components/SearchBar";
+import SearchBar from "metabase/nav/components/:";
 
 import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 
@@ -194,9 +194,9 @@ export default class Navbar extends Component {
         align="center"
         style={{ backgroundColor: color("nav") }}
         py={1}
-        pr={2}
+        pr={1}
       >
-        <Flex style={{ minWidth: 64 }} align="center" justify="center">
+        <Flex align="center" justify="center">
           <Link
             to="/"
             data-metabase-event={"Navbar;Logo"}
@@ -210,12 +210,14 @@ export default class Navbar extends Component {
               align="center"
               justify="center"
             >
-              <LogoIcon dark height={32} />
+              <LogoIcon dark width={100} height={25} />
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" pr={2} align="center">
-          <Box w={1} style={{ maxWidth: 500 }}>
+        <Flex className="flex-full z1" pr={2} align="center"
+          pl={0}
+          pr={0}>
+          <Box w={1} pr={0} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
