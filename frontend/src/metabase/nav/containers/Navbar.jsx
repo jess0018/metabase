@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
 
 import { PLUGIN_ADMIN_NAV_ITEMS } from "metabase/plugins";
@@ -10,20 +9,19 @@ import { push } from "react-router-redux";
 import cx from "classnames";
 import { t } from "ttag";
 import { Flex, Box } from "grid-styled";
-import styled from "styled-components";
-import { space } from "styled-system";
 
 import * as Urls from "metabase/lib/urls";
-import { color, darken, lighten } from "metabase/lib/colors";
+import { color, darken } from "metabase/lib/colors";
 
 import Icon, { IconWrapper } from "metabase/components/Icon";
 import EntityMenu from "metabase/components/EntityMenu";
 import Link from "metabase/components/Link";
 import LogoIcon from "metabase/components/LogoIcon";
-import OnClickOutsideWrapper from "metabase/components/OnClickOutsideWrapper";
 import Modal from "metabase/components/Modal";
 
 import ProfileLink from "metabase/nav/components/ProfileLink";
+import SearchBar from "metabase/nav/components/SearchBar";
+
 import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 
 import { getPath, getContext, getUser } from "../selectors";
@@ -43,6 +41,8 @@ const mapStateToProps = (state, props) => ({
   hasNativeWrite: getHasNativeWrite(state),
 });
 
+import { DefaultSearchColor } from "metabase/nav/constants";
+
 const mapDispatchToProps = {
   onChangeLocation: push,
 };
@@ -61,117 +61,10 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const DefaultSearchColor = lighten(color("nav"), 0.07);
-const ActiveSearchColor = lighten(color("nav"), 0.1);
-
 const NavHover = {
   backgroundColor: darken(color("nav")),
   color: "white",
 };
-
-const SearchWrapper = Flex.extend`
-  background-color: ${props =>
-    props.active ? ActiveSearchColor : DefaultSearchColor};
-  border-radius: 6px;
-  flex: 1 1 auto;
-  max-width: 50em;
-  align-items: center;
-  color: white;
-  transition: background 300ms ease-in;
-  &:hover {
-    background-color: ${ActiveSearchColor};
-  }
-`;
-
-const SearchInput = styled.input`
-  ${space} background-color: transparent;
-  padding: 8px 16px 8px 8px;
-  width: 100%;
-  border: none;
-  color: white;
-  font-size: 1em;
-  font-weight: 700;
-  &:focus {
-    outline: none;
-  }
-  &::placeholder {
-    color: ${color("text-white")};
-  }
-`;
-
-const SEARCH_FOCUS_ELEMENT_WHITELIST = new Set(["BODY", "A"]);
-
-class SearchBar extends React.Component {
-  state = {
-    active: false,
-    searchText: "",
-  };
-
-  componentWillMount() {
-    this._updateSearchTextFromUrl(this.props);
-    window.addEventListener("keyup", this.handleKeyUp);
-  }
-  componentWillUnmount() {
-    window.removeEventListener("keyup", this.handleKeyUp);
-  }
-  componentWillReceiveProps(nextProps) {
-    if (this.props.location.pathname !== nextProps.location.pathname) {
-      this._updateSearchTextFromUrl(nextProps);
-    }
-  }
-  _updateSearchTextFromUrl(props) {
-    const components = props.location.pathname.split("/");
-    if (components[components.length - 1] === "search") {
-      this.setState({ searchText: props.location.query.q });
-    } else {
-      this.setState({ searchText: "" });
-    }
-  }
-  handleKeyUp = (e: KeyboardEvent) => {
-    const FORWARD_SLASH_KEY = 191;
-    if (
-      e.keyCode === FORWARD_SLASH_KEY &&
-      SEARCH_FOCUS_ELEMENT_WHITELIST.has(document.activeElement.tagName)
-    ) {
-      ReactDOM.findDOMNode(this.searchInput).focus();
-    }
-  };
-
-  render() {
-    const { active, searchText } = this.state;
-    return (
-      <OnClickOutsideWrapper
-        handleDismissal={() => this.setState({ active: false })}
-      >
-        <SearchWrapper
-          onClick={() => this.setState({ active: true })}
-          active={active}
-        >
-          <Icon name="search" ml={["10px", 2]} />
-          <SearchInput
-            w={1}
-            py={1}
-            pr={1}
-            pl={1}
-            ref={ref => (this.searchInput = ref)}
-            value={searchText}
-            placeholder={t`Search` + "…"}
-            onClick={() => this.setState({ active: true })}
-            onChange={e => this.setState({ searchText: e.target.value })}
-            onKeyPress={e => {
-              if (e.key === "Enter" && (searchText || "").trim().length > 0) {
-                this.props.onChangeLocation({
-                  pathname: "search",
-                  query: { q: searchText },
-                });
-              }
-            }}
-          />
-        </SearchWrapper>
-      </OnClickOutsideWrapper>
-    );
-  }
-}
 
 const MODAL_NEW_DASHBOARD = "MODAL_NEW_DASHBOARD";
 
@@ -301,9 +194,9 @@ export default class Navbar extends Component {
         align="center"
         style={{ backgroundColor: color("nav") }}
         py={1}
-        pr={1}
+        pr={2}
       >
-        <Flex align="center" justify="center">
+        <Flex style={{ minWidth: 64 }} align="center" justify="center">
           <Link
             to="/"
             data-metabase-event={"Navbar;Logo"}
@@ -317,18 +210,15 @@ export default class Navbar extends Component {
               align="center"
               justify="center"
             >
-              <LogoIcon dark width={100} height={25} />
+              <LogoIcon dark height={32} />
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" 
-          pl={0}
-          pr={0} align="center">
-          <Box w={1} pr={0}>
+        <Flex className="flex-full z1" pr={2} align="center">
+          <Box w={1} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
-              pr={0}
             />
           </Box>
         </Flex>
@@ -346,6 +236,18 @@ export default class Navbar extends Component {
             >
               <Icon name="insight" size={18} />
               <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
+            </Link>
+          )}
+          {hasDataAccess && (
+            <Link
+              target="_blank"
+              to={Urls.managerQuestion()}
+              mx={2}
+              className="hide sm-show"
+            >
+            <Icon name="insight" size={18} />
+              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
+              {/* <Button medium>管理图表</Button> */}
             </Link>
           )}
           {hasDataAccess && (
@@ -400,20 +302,6 @@ export default class Navbar extends Component {
                 <Icon size={18} p={"11px"} name="sql" tooltip={t`Write SQL`} />
               </Link>
             </IconWrapper>
-          )}
-          {hasDataAccess && (
-            <Link
-              mr={[1, 2]}
-              to={Urls.managerQuestion()}
-              p={1}
-              hover={{
-                backgroundColor: darken(color("brand")),
-              }}
-              className="flex align-center rounded transition-background"
-              data-metabase-event={`NavBar;Management Question`}
-            >
-              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
-            </Link>
           )}
           <ProfileLink {...this.props} />
         </Flex>
