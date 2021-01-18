@@ -15,9 +15,8 @@ function toggleFieldWithDisplayName(displayName) {
 }
 
 describe("scenarios > admin > databases > add", () => {
-  before(restore);
-
   beforeEach(() => {
+    restore();
     signInAsAdmin();
     cy.server();
   });
@@ -31,6 +30,14 @@ describe("scenarios > admin > databases > add", () => {
     }).as("createDatabase");
 
     cy.visit("/admin/databases/create");
+
+    // Instead of bloating our test suite with a separate repro, this line will do
+    cy.log(
+      "**Repro for [metabase#14334](https://github.com/metabase/metabase/issues/14334)**",
+    );
+    cy.findByLabelText(
+      "Automatically run queries when doing simple filtering and summarizing",
+    ).should("have.attr", "aria-checked", "true");
 
     typeField("Name", "Test db name");
     typeField("Database name", "test_postgres_db");

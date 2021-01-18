@@ -1,10 +1,9 @@
 (ns metabase.cmd.compare-h2-dbs
   "Utility functions for comparing the contents of two H2 DBs, for testing the `load-from-h2 and `dump-to-h2` commands."
-  (:require [clojure
-             [data :as data]
-             [pprint :as pprint]
-             [string :as str]]
+  (:require [clojure.data :as data]
             [clojure.java.jdbc :as jdbc]
+            [clojure.pprint :as pprint]
+            [clojure.string :as str]
             metabase.db.jdbc-protocols))
 
 (comment metabase.db.jdbc-protocols/keep-me)
@@ -112,7 +111,7 @@
    false
    (distinct (sort (concat (table-names conn-1) (table-names conn-2))))))
 
-(defn- different-contents?
+(defn different-contents?
   "Diff contents of 2 DBs. Returns truthy if there is a difference, falsey if not."
   [db-file-1 db-file-2]
   (jdbc/with-db-connection [conn-1 (jdbc-spec db-file-1)]
