@@ -18,7 +18,7 @@ import {
 
 import { t } from "ttag";
 
-const listCollectionsTree = GET("/api/collection/tree");
+// const listCollectionsTree = GET("/api/collection/tree");
 const listCollections = GET("/api/collection");
 
 const Collections = createEntity({
@@ -29,15 +29,14 @@ const Collections = createEntity({
   displayNameOne: t`collection`,
   displayNameMany: t`collections`,
 
-  api: {
+  /*api: {
     list: async (params, ...args) =>
-      /* Parts of the UI, like ItemPicker don't yet know about the /tree endpoint and break if it's used,
-      so choose which endpoint to use based on the presence of a "tree" param
-      */
+      // Parts of the UI, like ItemPicker don't yet know about the /tree endpoint and break if it's used,
+      //so choose which endpoint to use based on the presence of a "tree" param
       params && params.tree
         ? listCollectionsTree(params, ...args)
         : listCollections(params, ...args),
-  },
+  },*/
 
   objectActions: {
     setArchived: ({ id }, archived, opts) =>

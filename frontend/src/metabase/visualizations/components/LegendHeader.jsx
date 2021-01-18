@@ -3,12 +3,18 @@ import PropTypes from "prop-types";
 import styles from "./Legend.css";
 
 import ExplicitSize from "../../components/ExplicitSize";
-import Icon from "metabase/components/Icon";
+//import Icon from "metabase/components/Icon";
 import LegendItem from "./LegendItem";
 
 import cx from "classnames";
 
 import { normal } from "metabase/lib/colors";
+
+import Icon from 'antd/es/icon';
+import "antd/es/icon/style/css";
+import Tooltip from "metabase/components/Tooltip";
+import { Link } from "react-router";
+
 const DEFAULT_COLORS = Object.values(normal);
 const MIN_WIDTH_PER_SERIES = 100;
 
@@ -70,6 +76,10 @@ export default class LegendHeader extends Component {
       ? seriesSettings.map(s => s.title)
       : series.map(single => single.card.name);
 
+      const skip_link = seriesSettings
+      ? seriesSettings.map(s => s.skip_link)
+      : series.map(single => single.card.skip_link);
+      
     return (
       <div
         className={cx(
@@ -138,6 +148,18 @@ export default class LegendHeader extends Component {
           >
             {actionButtons}
           </span>
+        )}
+
+        {(skip_link && skip_link.length>0 && skip_link[0] && !actionButtons) && (
+            <Tooltip tooltip="查看关联看板">
+                <Link
+                    target="_blank"
+                    to={skip_link[0]}
+                    style={{marginLeft:'auto'}}
+                >
+                    <Icon type="link" style={{ fontSize: '16px',fontWeight:'700' }}  />
+                </Link>
+          </Tooltip>
         )}
       </div>
     );

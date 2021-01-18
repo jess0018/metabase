@@ -32,6 +32,8 @@ export type Card = {
 
   // Not part of the card API contract, a field used by query builder for showing lineage
   original_card_id?: CardId,
+  skip_link: ?string,
+  skip_link_title: ?string,
 };
 
 export type StructuredDatasetQuery = {

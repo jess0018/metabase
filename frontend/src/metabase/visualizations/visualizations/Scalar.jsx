@@ -23,6 +23,11 @@ import ScalarValue, {
   ScalarTitle,
 } from "metabase/visualizations/components/ScalarValue";
 
+import { Link } from "react-router";
+import Tooltip from "metabase/components/Tooltip";
+import Icon from 'antd/es/icon';
+import "antd/es/icon/style/css";
+
 // convert legacy `scalar.*` visualization settings to format options
 function legacyScalarSettingsToFormatOptions(settings) {
   return _.chain(settings)
@@ -219,10 +224,23 @@ export default class Scalar extends Component {
     };
     const isClickable = visualizationIsClickable(clicked);
 
+    const skip_link = settings ?  settings['card.skip_link']:'';
+
     return (
       <ScalarWrapper>
         <div className="Card-title absolute top right p1 px2">
           {actionButtons}
+          {(skip_link && skip_link.length>0 && !actionButtons) && (
+          <Tooltip tooltip="查看关联看板">
+            <Link
+            target="_blank"
+            to={skip_link}
+            style={{marginLeft:'auto'}}
+          >
+            <Icon type="link" style={{ fontSize: '16px',fontWeight:'700' }}  />
+          </Link>
+          </Tooltip>
+        )}
         </div>
         <Ellipsified
           className={cx("fullscreen-normal-text fullscreen-night-text", {

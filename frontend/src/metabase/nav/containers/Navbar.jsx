@@ -194,9 +194,9 @@ export default class Navbar extends Component {
         align="center"
         style={{ backgroundColor: color("nav") }}
         py={1}
-        pr={2}
+        pr={1}
       >
-        <Flex style={{ minWidth: 64 }} align="center" justify="center">
+        <Flex align="center" justify="center">
           <Link
             to="/"
             data-metabase-event={"Navbar;Logo"}
@@ -210,12 +210,12 @@ export default class Navbar extends Component {
               align="center"
               justify="center"
             >
-              <LogoIcon dark height={32} />
+              <LogoIcon dark width={100} height={25} />
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" pr={2} align="center">
-          <Box w={1} style={{ maxWidth: 500 }}>
+        <Flex className="flex-full z1" pl={0} pr={0} align="center">
+          <Box w={1} pr={0} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
@@ -236,6 +236,18 @@ export default class Navbar extends Component {
             >
               <Icon name="insight" size={18} />
               <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
+            </Link>
+          )}
+          {hasDataAccess && (
+            <Link
+              target="_blank"
+              to={Urls.managerQuestion()}
+              mx={2}
+              className="hide sm-show"
+            >
+            <Icon name="insight" size={18} />
+              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
+              {/* <Button medium>管理图表</Button> */}
             </Link>
           )}
           {hasDataAccess && (

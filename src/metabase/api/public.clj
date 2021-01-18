@@ -43,7 +43,7 @@
   "Remove everyting from public `card` that shouldn't be visible to the general public."
   [card]
   (card/map->CardInstance
-   (u/select-nested-keys card [:id :name :description :display :visualization_settings
+   (u/select-nested-keys card [:id :name :description :display :visualization_settings :skip_link_title :skip_link
                                [:dataset_query :type [:native :template-tags]]])))
 
 (defn public-card

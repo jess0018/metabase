@@ -14,7 +14,7 @@ export default class DateQuarterYearWidget extends Component {
   constructor(props, context) {
     super(props, context);
 
-    const initial = moment(this.props.value, "[Q]Q-YYYY");
+    const initial = moment(this.props.value, "YYYY-[Q]Q");
     if (initial.isValid()) {
       this.state = {
         quarter: initial.quarter(),
@@ -32,8 +32,8 @@ export default class DateQuarterYearWidget extends Component {
   static defaultProps = {};
 
   static format = value => {
-    const m = moment(value, "[Q]Q-YYYY");
-    return m.isValid() ? m.format("[Q]Q, YYYY") : "";
+    const m = moment(value, "YYYY-[Q]Q");
+    return m.isValid() ? m.format("YYYY-[Q]Q") : "";
   };
 
   componentWillUnmount() {
@@ -42,7 +42,7 @@ export default class DateQuarterYearWidget extends Component {
       const value = moment()
         .year(year)
         .quarter(quarter)
-        .format("[Q]Q-YYYY");
+        .format("YYYY-[Q]Q");
       if (this.props.value !== value) {
         this.props.setValue(value);
       }

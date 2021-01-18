@@ -67,7 +67,7 @@ export default class App extends Component {
 
     return (
       <ScrollToTop>
-        <div className="relative">
+        <div className="relative" style={{width:'100%',height:'100%'}}>
           {currentUser && !IFRAMED && <Navbar location={location} />}
           {errorPage ? getErrorComponent(errorPage) : children}
           <UndoListing />

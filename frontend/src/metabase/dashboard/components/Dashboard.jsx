@@ -41,6 +41,9 @@ import type {
   ParameterOption,
 } from "metabase-types/types/Parameter";
 
+import MyOrgTree from "metabase/containers/MyOrgTree.jsx";
+import MyOrgTreeTBU from "metabase/containers/MyOrgTreeTBU.jsx";
+
 type Props = {
   location: LocationDescriptor,
 
