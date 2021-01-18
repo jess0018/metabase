@@ -372,6 +372,7 @@ function Sidebars(props) {
     isSharing,
     isEditing,
     isFullscreen,
+    onCancel,
   } = props;
   if (clickBehaviorSidebarDashcard) {
     return (
@@ -419,7 +420,13 @@ function Sidebars(props) {
 
   // SharingSidebar should only show if we're not editing or in fullscreen
   if (!isEditing && !isFullscreen && isSharing) {
-    return <SharingSidebar {...props} />;
+    return (
+      <SharingSidebar
+        dashboard={dashboard}
+        params={props.params}
+        onCancel={onCancel}
+      />
+    );
   }
 
   return null;

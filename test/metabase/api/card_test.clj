@@ -1,28 +1,24 @@
 (ns metabase.api.card-test
   "Tests for /api/card endpoints."
   (:require [cheshire.core :as json]
-            [clojure
-             [string :as str]
-             [test :refer :all]]
+            [clojure.string :as str]
+            [clojure.test :refer :all]
             [dk.ative.docjure.spreadsheet :as spreadsheet]
             [java-time :as t]
             [medley.core :as m]
-            [metabase
-             [http-client :as http :refer :all]
-             [models :refer [Card CardFavorite Collection Dashboard Database Pulse PulseCard PulseChannel
-                             PulseChannelRecipient Table ViewLog]]
-             [test :as mt]
-             [util :as u]]
             [metabase.api.card :as card-api]
+            [metabase.api.pivots :as pivots]
             [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
-            [metabase.middleware.util :as middleware.u]
-            [metabase.models
-             [permissions :as perms]
-             [permissions-group :as perms-group]]
+            [metabase.http-client :as http :refer :all]
+            [metabase.models :refer [Card CardFavorite Collection Dashboard Database Pulse PulseCard PulseChannel PulseChannelRecipient Table ViewLog]]
+            [metabase.models.permissions :as perms]
+            [metabase.models.permissions-group :as perms-group]
             [metabase.query-processor.async :as qp.async]
-            [metabase.query-processor.middleware
-             [constraints :as constraints]
-             [results-metadata :as results-metadata]]
+            [metabase.query-processor.middleware.constraints :as constraints]
+            [metabase.query-processor.middleware.results-metadata :as results-metadata]
+            [metabase.server.middleware.util :as middleware.u]
+            [metabase.test :as mt]
+            [metabase.util :as u]
             [schema.core :as s]
             [toucan.db :as db])
   (:import java.io.ByteArrayInputStream
@@ -1456,3 +1452,19 @@
                   :dashboards        s/Any
                   :collections       s/Any}
                  (mt/user-http-request :crowberto :get 200 (format "card/%s/related" (u/get-id card)))))))
+
+(deftest pivot-card-test
+  (mt/test-drivers pivots/applicable-drivers
+    (mt/dataset sample-dataset
+      (testing "POST /api/card/pivot/:card-id/query"
+        (mt/with-temp Card [card (pivots/pivot-card)]
+          (let [result (mt/user-http-request :rasta :post 202 (format "card/pivot/%d/query" (u/get-id card)))
+                rows   (mt/rows result)]
+            (is (= 1144 (:row_count result)))
+            (is (= "completed" (:status result)))
+            (is (= 6 (count (get-in result [:data :cols]))))
+            (is (= 1144 (count rows)))
+
+            (is (= ["AK" "Affiliate" "Doohickey" 0 18 81] (first rows)))
+            (is (= ["MS" "Organic" "Gizmo" 0 16 42] (nth rows 445)))
+            (is (= [nil nil nil 7 18760 69540] (last rows)))))))))
