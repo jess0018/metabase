@@ -317,7 +317,7 @@ export default class DashboardHeader extends Component {
         <Link
           className={extraButtonClassNames}
           to={location.pathname + "/history"}
-          data-metabase-event={"Dashboard;EditDetails"}
+          data-metabase-event={"Dashboard;History"}
         >
           {t`Revision history`}
         </Link>,
@@ -391,6 +391,7 @@ export default class DashboardHeader extends Component {
   render() {
     const { dashboard } = this.props;
 
+    console.log(this.props.isEditing);
     return (
       <Header
         headerClassName="wrapper"

@@ -32,6 +32,8 @@ import {
 } from "metabase/new_query/selectors";
 import Database from "metabase/entities/databases";
 
+const IsPc=!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
@@ -223,7 +225,7 @@ export default class Navbar extends Component {
           </Box>
         </Flex>
         <Flex ml="auto" align="center" pl={[1, 2]} className="relative z2">
-          {hasDataAccess && (
+          {IsPc && hasDataAccess && (
             <Link
               mr={[1, 2]}
               to={Urls.newQuestionFlow()}
@@ -238,19 +240,7 @@ export default class Navbar extends Component {
               <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
             </Link>
           )}
-          {hasDataAccess && (
-            <Link
-              target="_blank"
-              to={Urls.managerQuestion()}
-              mx={2}
-              className="hide sm-show"
-            >
-            <Icon name="insight" size={18} />
-              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
-              {/* <Button medium>管理图表</Button> */}
-            </Link>
-          )}
-          {hasDataAccess && (
+          {IsPc && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -269,6 +259,7 @@ export default class Navbar extends Component {
               </Link>
             </IconWrapper>
           )}
+          {IsPc && (
           <EntityMenu
             tooltip={t`Create`}
             className="hide sm-show mr1"
@@ -289,7 +280,8 @@ export default class Navbar extends Component {
               },
             ]}
           />
-          {hasNativeWrite && (
+          )}
+          {IsPc && hasNativeWrite && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -302,6 +294,23 @@ export default class Navbar extends Component {
                 <Icon size={18} p={"11px"} name="sql" tooltip={t`Write SQL`} />
               </Link>
             </IconWrapper>
+          )}
+          {IsPc && hasDataAccess && (
+            <Link
+            target="_blank"
+              mr={[1, 2]}
+              to={Urls.managerQuestion()}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Management`}
+            >
+              {/* <Icon name="insight" size={18} />  */}
+              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
+              {/* <Button medium>管理图表</Button> */}
+            </Link>
           )}
           <ProfileLink {...this.props} />
         </Flex>

@@ -18,7 +18,7 @@ import {
 
 import { t } from "ttag";
 
-// const listCollectionsTree = GET("/api/collection/tree");
+const listCollectionsTree = GET("/api/collection/tree");
 const listCollections = GET("/api/collection");
 
 const Collections = createEntity({

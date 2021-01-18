@@ -58,23 +58,22 @@
       (for [collection collections]
         (dissoc collection ::collection.root/is-root?)))))
 
-; (api/defendpoint GET "/tree"
-;   "Similar to `GET /`, but returns Collections in a tree structure, e.g.
-
-;     [{:name     \"A\"
-;       :children [{:name \"B\"}
-;                  {:name     \"C\"
-;                   :children [{:name     \"D\"
-;                               :children [{:name \"E\"}]}
-;                              {:name     \"F\"
-;                               :children [{:name \"G\"}]}]}]}
-;      {:name \"H\"}]"
-;   []
-;   (collection/collections->tree
-;    (db/select Collection
-;      {:where (collection/visible-collection-ids->honeysql-filter-clause
-;               :id
-;               (collection/permissions-set->visible-collection-ids @api/*current-user-permissions-set*))})))
+(api/defendpoint GET "/tree"
+  "Similar to `GET /`, but returns Collections in a tree structure, e.g.
+    [{:name     \"A\"
+      :children [{:name \"B\"}
+                 {:name     \"C\"
+                  :children [{:name     \"D\"
+                              :children [{:name \"E\"}]}
+                             {:name     \"F\"
+                              :children [{:name \"G\"}]}]}]}
+     {:name \"H\"}]"
+  []
+  (collection/collections->tree
+   (db/select Collection
+     {:where (collection/visible-collection-ids->honeysql-filter-clause
+              :id
+              (collection/permissions-set->visible-collection-ids @api/*current-user-permissions-set*))})))
 
 
 ;;; --------------------------------- Fetching a single Collection & its 'children' ----------------------------------

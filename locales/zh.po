@@ -1964,7 +1964,7 @@ msgstr "嵌入的问题"
 
 #: frontend/src/metabase/admin/settings/selectors.js:338
 msgid "Caching"
-msgstr "缓存中"
+msgstr "缓存设置"
 
 #: frontend/src/metabase/admin/settings/selectors.js:342
 msgid "Enable Caching"
@@ -4125,7 +4125,7 @@ msgstr "帮助"
 
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:72
 msgid "About Metabase"
-msgstr "关于Metabase"
+msgstr "关于EasyBI"
 
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:78
 msgid "Sign out"
@@ -4160,7 +4160,7 @@ msgstr "Metabase管理员"
 #: frontend/src/metabase/reference/metrics/MetricQuestions.jsx:36
 #: frontend/src/metabase/reference/segments/SegmentQuestions.jsx:36
 msgid "Ask a question"
-msgstr "创建问题"
+msgstr "创建图表"
 
 #: frontend/src/metabase/collections/containers/CollectionContent.jsx:215
 msgid "New dashboard"
@@ -5681,7 +5681,7 @@ msgstr "没有字段类型"
 
 #: frontend/src/metabase/query_builder/components/notebook/steps/SummarizeStep.jsx:26
 msgid "by"
-msgstr "通过"
+msgstr "分组条件"
 
 #: frontend/src/metabase/reference/components/FieldTypeDetail.jsx:25
 #: frontend/src/metabase/reference/databases/FieldList.jsx:156
@@ -6874,7 +6874,7 @@ msgstr "气泡大小"
 #: frontend/src/metabase/visualizations/lib/settings/series.js:71
 #: frontend/src/metabase/visualizations/visualizations/LineChart.jsx:17
 msgid "Line"
-msgstr "线段"
+msgstr "折线图"
 
 #: frontend/src/metabase/visualizations/lib/settings/series.js:72
 msgid "Curve"
@@ -7025,7 +7025,7 @@ msgstr "区域图表"
 #: frontend/src/metabase/visualizations/lib/settings/graph.js:257
 #: frontend/src/metabase/visualizations/visualizations/BarChart.jsx:18
 msgid "Bar"
-msgstr "柱"
+msgstr "柱形图"
 
 #: frontend/src/metabase/visualizations/visualizations/BarChart.jsx:21
 msgid "bar chart"
@@ -7199,7 +7199,7 @@ msgstr "处理可视化需要一个数字。"
 
 #: frontend/src/metabase/visualizations/visualizations/Progress.jsx:27
 msgid "Progress"
-msgstr "处理"
+msgstr "进度条"
 
 #: frontend/src/metabase/entities/collections.js:124
 #: frontend/src/metabase/entities/snippet-collections.js:87
@@ -12575,7 +12575,7 @@ msgstr "行数的附加计数。\\ ne.x。总销售额随着时间的推移。"
 #: frontend/src/metabase/query_builder/components/notebook/NotebookStep.jsx:47
 #: frontend/src/metabase/query_builder/components/view/QuestionFilters.jsx:98
 msgid "Filter"
-msgstr "过滤器"
+msgstr "筛选条件"
 
 #: frontend/src/metabase/modes/components/drill/UnderlyingRecordsDrill.jsx:50
 msgid "record"
@@ -12822,7 +12822,7 @@ msgstr "组合"
 
 #: frontend/src/metabase/visualizations/visualizations/RowChart.jsx:13
 msgid "Row"
-msgstr "行"
+msgstr "条形图"
 
 #: frontend/src/metabase/visualizations/visualizations/SmartScalar.jsx:22
 msgid "Trend"
@@ -14831,7 +14831,7 @@ msgstr "按字母顺序"
 
 #: frontend/src/metabase/admin/datamodel/components/database/ColumnsList.jsx:153
 msgid "Smart"
-msgstr "聪明"
+msgstr "智能"
 
 #: frontend/src/metabase/admin/datamodel/components/database/ColumnsList.jsx:176
 msgid "Column order: {0}"
@@ -17051,7 +17051,7 @@ msgstr "数据透视表只能与汇总查询一起使用。"
 
 #: frontend/src/metabase/visualizations/visualizations/PivotTable.jsx:44
 msgid "Pivot Table"
-msgstr "枢轴表"
+msgstr "透视表"
 
 #: frontend/src/metabase/visualizations/visualizations/WaterfallChart.jsx:15
 msgid "Waterfall"
