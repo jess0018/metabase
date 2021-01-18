@@ -237,6 +237,18 @@ export function createBasicAlert({ firstAlert, includeNormal } = {}) {
   cy.findByText("Let's set up your alert").should("not.exist");
 }
 
+export function setupDummySMTP() {
+  cy.log("**Set up dummy SMTP server**");
+  cy.request("PUT", "/api/setting", {
+    "email-smtp-host": "smtp.foo.test",
+    "email-smtp-port": "587",
+    "email-smtp-security": "none",
+    "email-smtp-username": "nevermind",
+    "email-smtp-password": "it-is-secret-NOT",
+    "email-from-address": "nonexisting@metabase.test",
+  });
+}
+
 /*****************************************
  **            QA DATABASES             **
  ******************************************/
@@ -305,11 +317,14 @@ function addQADatabase(engine, db_display_name, port) {
   });
 }
 
-export function visitQuestionAdhoc(question) {
+export function adhocQuestionHash(question) {
   if (question.display) {
     // without "locking" the display, the QB will run its picking logic and override the setting
     question = Object.assign({}, question, { displayIsLocked: true });
   }
-  const hash = btoa(unescape(encodeURIComponent(JSON.stringify(question))));
-  cy.visit("/question#" + hash);
+  return btoa(unescape(encodeURIComponent(JSON.stringify(question))));
+}
+
+export function visitQuestionAdhoc(question) {
+  cy.visit("/question#" + adhocQuestionHash(question));
 }

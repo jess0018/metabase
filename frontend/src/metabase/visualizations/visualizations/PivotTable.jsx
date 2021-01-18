@@ -1,12 +1,13 @@
 import React, { Component } from "react";
-import { t } from "ttag";
+import { t, jt } from "ttag";
 import cx from "classnames";
 import _ from "underscore";
-import { getIn } from "icepick";
+import { getIn, updateIn } from "icepick";
 import { Grid, List, ScrollSync } from "react-virtualized";
 import { Flex } from "grid-styled";
 
 import Ellipsified from "metabase/components/Ellipsified";
+import Icon from "metabase/components/Icon";
 import { isDimension } from "metabase/lib/schema_metadata";
 import { isPivotGroupColumn, multiLevelPivot } from "metabase/lib/data_grid";
 import { formatColumn } from "metabase/lib/formatting";
@@ -18,17 +19,23 @@ const partitions = [
   {
     name: "rows",
     columnFilter: isDimension,
-    title: t`Fields to use for the table rows`,
+    title: jt`Fields to use for the table ${(
+      <span className="text-dark text-heavy">{t`rows`}</span>
+    )}`,
   },
   {
     name: "columns",
     columnFilter: isDimension,
-    title: t`Fields to use for the table columns`,
+    title: jt`Fields to use for the table ${(
+      <span className="text-dark text-heavy">{t`columns`}</span>
+    )}`,
   },
   {
     name: "values",
     columnFilter: col => !isDimension(col),
-    title: t`Fields to use for the table values`,
+    title: jt`Fields to use for the table ${(
+      <span className="text-dark text-heavy">{t`values`}</span>
+    )}`,
   },
 ];
 
@@ -38,6 +45,9 @@ const CELL_HEIGHT = 25;
 // the left header has a wider cell width and some additional spacing on the left to align with the title
 const LEFT_HEADER_LEFT_SPACING = 24;
 const LEFT_HEADER_CELL_WIDTH = 145;
+
+const COLLAPSED_ROWS_SETTING = "pivot_table.collapsed_rows";
+const COLUMN_SPLIT_SETTING = "pivot_table.column_split";
 
 export default class PivotTable extends Component {
   props: VisualizationProps;
@@ -49,15 +59,30 @@ export default class PivotTable extends Component {
     return false;
   }
 
-  static isSensible({ cols }) {
-    return cols.length >= 2 && cols.every(isColumnValid);
+  static databaseSupportsPivotTables(query) {
+    if (query && query.database && query.database() != null) {
+      // if we don't have metadata, we can't check this
+      return query.database().supportsPivots();
+    }
+    return true;
   }
 
-  static checkRenderable([{ data }]) {
+  static isSensible({ cols }, query) {
+    return (
+      cols.length >= 2 &&
+      cols.every(isColumnValid) &&
+      this.databaseSupportsPivotTables(query)
+    );
+  }
+
+  static checkRenderable([{ data, card }], settings, query) {
     if (data.cols.length < 2 || !data.cols.every(isColumnValid)) {
       throw new Error(
         t`Pivot tables can only be used with aggregated queries.`,
       );
+    }
+    if (!this.databaseSupportsPivotTables(query)) {
+      throw new Error(t`This database does not support pivot tables.`);
     }
   }
 
@@ -67,16 +92,36 @@ export default class PivotTable extends Component {
 
   static settings = {
     ...columnSettings({ hidden: true }),
-    "pivot_table.column_split": {
+    [COLLAPSED_ROWS_SETTING]: {
+      hidden: true,
+      readDependencies: [COLUMN_SPLIT_SETTING],
+      getValue: (series, settings = {}) => {
+        // This is hack. Collapsed rows depend on the current column split setting.
+        // If the query changes or the rows are reordered, we ignore the current collapsed row setting.
+        // This is accomplished by snapshotting part of the column split setting *inside* this setting.
+        // `value` the is the actual data for this setting
+        // `rows` is value we check against the current setting to see if we should use `value`
+        const { rows, value } = settings[COLLAPSED_ROWS_SETTING] || {};
+        const { rows: currentRows } = settings[COLUMN_SPLIT_SETTING];
+        if (!_.isEqual(rows, currentRows)) {
+          return { value: [], rows: currentRows };
+        }
+        return { rows, value };
+      },
+    },
+    [COLUMN_SPLIT_SETTING]: {
       section: null,
       widget: "fieldsPartition",
       persistDefault: true,
+      getHidden: ([{ data }]) =>
+        // hide the setting widget if there are invalid columns
+        !data || data.cols.some(col => !isColumnValid(col)),
       getProps: ([{ data }], settings) => ({
         partitions,
         columns: data == null ? [] : data.cols,
       }),
       getValue: ([{ data, card }], settings = {}) => {
-        const storedValue = settings["pivot_table.column_split"];
+        const storedValue = settings[COLUMN_SPLIT_SETTING];
         if (data == null) {
           return undefined;
         }
@@ -118,14 +163,22 @@ export default class PivotTable extends Component {
     },
   };
 
-  componentDidUpdate() {
-    this.bodyGrid && this.bodyGrid.recomputeGridSize();
-    this.leftList && this.leftList.recomputeGridSize();
-    this.topGrid && this.topGrid.recomputeGridSize();
-  }
-
   render() {
-    const { settings, data, width, height } = this.props;
+    // We need to tell the List/Grids to call the columnWidth/rowHeight functions again when data changes.
+    // Putting this in componentDidUpdate led the dimensions to be recomputed _after_ re-rendering the cells.
+    // According to the docs, recomputing dimensions should force a render but this didn't occur correctly.
+    // The downside of keeping it here is that the dimensions are computed twice per render.
+    this.bodyGrid && this.bodyGrid.recomputeGridSize();
+    this.topGrid && this.topGrid.recomputeGridSize();
+    this.leftList && this.leftList.recomputeRowHeights();
+
+    const {
+      settings,
+      data,
+      width,
+      height,
+      onUpdateVisualizationSettings,
+    } = this.props;
     if (data == null || !data.cols.some(isPivotGroupColumn)) {
       return null;
     }
@@ -149,7 +202,13 @@ export default class PivotTable extends Component {
 
     let pivoted;
     try {
-      pivoted = multiLevelPivot(data, columnIndexes, rowIndexes, valueIndexes);
+      pivoted = multiLevelPivot(
+        data,
+        columnIndexes,
+        rowIndexes,
+        valueIndexes,
+        settings[COLLAPSED_ROWS_SETTING].value,
+      );
     } catch (e) {
       console.warn(e);
     }
@@ -157,18 +216,16 @@ export default class PivotTable extends Component {
       topIndex,
       leftIndex,
       topIndexFormatters,
-      leftIndexFormatters,
       getRowSection,
       rowCount,
       columnCount,
     } = pivoted;
-    const topHeaderHeight =
-      topIndex.length === 0 ? CELL_HEIGHT : topIndex[0].length * CELL_HEIGHT;
+
+    const topHeaderHeight = (topIndex[0].length || 1) * CELL_HEIGHT;
     const leftHeaderWidth =
-      leftIndex.length === 0
-        ? 0
-        : LEFT_HEADER_LEFT_SPACING +
-          leftIndex[0][0].length * LEFT_HEADER_CELL_WIDTH;
+      rowIndexes.length > 0
+        ? LEFT_HEADER_LEFT_SPACING + rowIndexes.length * LEFT_HEADER_CELL_WIDTH
+        : 0;
 
     function columnWidth({ index }) {
       if (topIndex.length === 0) {
@@ -178,14 +235,16 @@ export default class PivotTable extends Component {
       return indexItem[indexItem.length - 1].length * CELL_WIDTH;
     }
 
+    function getSpan(children) {
+      return children.length === 0
+        ? 1
+        : children.reduce((sum, child) => sum + getSpan(child.children), 0);
+    }
     function rowHeight({ index }) {
       if (leftIndex.length === 0) {
         return CELL_HEIGHT;
       }
-      const span = leftIndex[index].reduce(
-        (sum, row) => row[0][0].span + sum,
-        0,
-      );
+      const span = getSpan(leftIndex[index]);
       return span * CELL_HEIGHT;
     }
 
@@ -225,52 +284,21 @@ export default class PivotTable extends Component {
     );
 
     const leftHeaderRenderer = _.memoize(
-      ({ key, style, index }) => {
-        return (
-          <div
-            key={key}
-            style={style}
-            className="flex flex-column border-right border-medium"
-          >
-            {leftIndex[index].map((row, rowIndex) => (
-              <div
-                className="flex"
-                style={{ height: row[0][0].span * CELL_HEIGHT }}
-              >
-                {row.map((col, index) =>
-                  col[0].isSubtotal ? (
-                    <Cell
-                      value={col[0].value}
-                      isSubtotal
-                      isGrandTotal={col[0].isGrandTotal}
-                      style={{
-                        paddingLeft: LEFT_HEADER_LEFT_SPACING,
-                        width: leftHeaderWidth,
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="flex flex-column bg-light flex-basis-none flex-full"
-                      style={{
-                        paddingLeft: index === 0 ? LEFT_HEADER_LEFT_SPACING : 0,
-                      }}
-                    >
-                      {col.map(({ value, span = 1, isSubtotal }) => (
-                        <Cell
-                          value={leftIndexFormatters[index](value)}
-                          isSubtotal={isSubtotal}
-                          height={span}
-                          baseWidth={LEFT_HEADER_CELL_WIDTH}
-                        />
-                      ))}
-                    </div>
-                  ),
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      },
+      ({ key, style, index }) => (
+        <div
+          key={key}
+          style={style}
+          className="border-right border-medium bg-light"
+        >
+          {(leftIndex[index] || []).map(item => (
+            <LeftHeaderSection
+              item={item}
+              settings={settings}
+              onUpdateVisualizationSettings={onUpdateVisualizationSettings}
+            />
+          ))}
+        </div>
+      ),
       ({ index }) => index,
     );
 
@@ -393,6 +421,88 @@ export default class PivotTable extends Component {
   }
 }
 
+function RowToggleIcon({
+  value,
+  settings,
+  updateSettings,
+  hideUnlessCollapsed,
+}) {
+  const setting = settings[COLLAPSED_ROWS_SETTING];
+  const rowRef = JSON.stringify(value);
+  const isCollapsed = (setting.value || []).includes(rowRef);
+  if (hideUnlessCollapsed && !isCollapsed) {
+    // subtotal rows shouldn't have an icon unless the section is collapsed
+    return null;
+  }
+  const toggle = isCollapsed
+    ? value => value.filter(v => v !== rowRef)
+    : value => value.concat(rowRef);
+  const update = () => {
+    const updatedValue = updateIn(setting, ["value"], toggle);
+    updateSettings({ [COLLAPSED_ROWS_SETTING]: updatedValue });
+  };
+  return (
+    <div
+      className={cx(
+        "flex align-center cursor-pointer bg-brand-hover text-light text-white-hover",
+        isCollapsed ? "bg-light" : "bg-medium",
+      )}
+      style={{ padding: "4px", borderRadius: "4px" }}
+      onClick={update}
+    >
+      <Icon name={isCollapsed ? "add" : "dash"} size={8} />
+    </div>
+  );
+}
+
+function LeftHeaderSection({
+  item: { value, rawValue, isSubtotal, isGrandTotal, children },
+  settings,
+  onUpdateVisualizationSettings,
+  valuePath = [],
+  depth = 0,
+}) {
+  valuePath = [...valuePath, rawValue];
+  return (
+    <div className="flex justify-between">
+      {value === null ? null : (
+        <Cell
+          value={value}
+          isSubtotal={isSubtotal}
+          isGrandTotal={isGrandTotal}
+          baseWidth={LEFT_HEADER_CELL_WIDTH}
+          width={isSubtotal ? undefined : 1}
+          className={isSubtotal ? "flex-full" : ""}
+          style={{
+            ...(depth === 0 ? { paddingLeft: LEFT_HEADER_LEFT_SPACING } : {}),
+          }}
+          icon={
+            (isSubtotal || children.length > 1) && (
+              <RowToggleIcon
+                value={valuePath}
+                settings={settings}
+                updateSettings={onUpdateVisualizationSettings}
+                hideUnlessCollapsed={isSubtotal}
+              />
+            )
+          }
+        />
+      )}
+      <div className="flex flex-column">
+        {children.map(child => (
+          <LeftHeaderSection
+            item={child}
+            depth={depth + 1}
+            valuePath={valuePath}
+            settings={settings}
+            onUpdateVisualizationSettings={onUpdateVisualizationSettings}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Cell({
   value,
   isSubtotal,
@@ -405,6 +515,7 @@ function Cell({
   style,
   isBody = false,
   className,
+  icon,
 }) {
   return (
     <div
@@ -421,13 +532,14 @@ function Cell({
       })}
       onClick={onClick}
     >
-      <div className="px1">
+      <div className="px1 flex align-center">
         {isBody ? (
           // Ellipsified isn't really needed for body cells. Avoiding it helps performance.
           value
         ) : (
           <Ellipsified>{value}</Ellipsified>
         )}
+        {icon && <div className="pl1">{icon}</div>}
       </div>
     </div>
   );
@@ -466,7 +578,7 @@ function updateValueWithCurrentColumns(storedValue, columns) {
 // When a breakout is added to the query, we need to partition it before getting the rows.
 // We pretend the breakouts are columns so we can partition the new breakout.
 function addMissingCardBreakouts(setting, card) {
-  const breakouts = getIn(card, ["dataset_query", "query", "breakout"]);
+  const breakouts = getIn(card, ["dataset_query", "query", "breakout"]) || [];
   if (breakouts.length <= setting.columns.length + setting.rows.length) {
     return setting;
   }
