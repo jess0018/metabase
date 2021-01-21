@@ -237,10 +237,14 @@ export default class Navbar extends Component {
               data-metabase-event={`NavBar;New Question`}
             >
               <Icon name="insight" size={18} />
-              <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
+              <h4 
+                style={{color: '#fff', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                {t`Ask a question`}
+              </h4>
             </Link>
           )}
-          {IsPc && hasDataAccess && (
+          {/* {IsPc && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -258,7 +262,7 @@ export default class Navbar extends Component {
                 />
               </Link>
             </IconWrapper>
-          )}
+          )} */}
           {IsPc && (
           <EntityMenu
             tooltip={t`Create`}
@@ -281,7 +285,25 @@ export default class Navbar extends Component {
             ]}
           />
           )}
-          {IsPc && hasNativeWrite && hasDataAccess && (
+          {IsPc && hasDataAccess && (
+            <Link
+              mr={[1, 1]}
+              to="browse"
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Data Browse`}
+            >
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap"> 
+                {t`Browse data`
+              }</h4>
+            </Link>
+          )}
+          {/* {IsPc && hasNativeWrite && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -294,11 +316,11 @@ export default class Navbar extends Component {
                 <Icon size={18} p={"11px"} name="sql" tooltip={t`Write SQL`} />
               </Link>
             </IconWrapper>
-          )}
+          )} */}
           {IsPc && hasDataAccess && (
             <Link
             target="_blank"
-              mr={[1, 2]}
+              mr={1}
               to={Urls.managerQuestion()}
               p={1}
               hover={{
@@ -308,8 +330,11 @@ export default class Navbar extends Component {
               data-metabase-event={`NavBar;Management`}
             >
               {/* <Icon name="insight" size={18} />  */}
-              <h4 className="hide sm-show ml1 text-nowrap">管理图表</h4>
-              {/* <Button medium>管理图表</Button> */}
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                管理图表
+              </h4>
             </Link>
           )}
           <ProfileLink {...this.props} />

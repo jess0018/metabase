@@ -186,9 +186,28 @@ export const getRoutes = store => (
       <Route component={IsAuthenticated}>
         {/* The global all hands rotues, things in here are for all the folks */}
 
+        <Route path="/manager" component={Overworld} />
+
         {
             IsPc ?  <Redirect from="/" to="/view"/> : <Redirect from="/" to="/apphome"/>
         }
+
+        <Route path="/apphome" component={DashboardHome}>
+            <Route path="collection/:collectionId" component={CollectionLanding}>
+                <ModalRoute path="edit" modal={CollectionEdit} />
+                <ModalRoute path="archive" modal={ArchiveCollectionModal} />
+                <ModalRoute path="new_collection" modal={CollectionCreate} />
+                <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
+                <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
+            </Route>
+            <Route path="dashboard/:dashboardId" component={DashboardApp}>
+                <ModalRoute path="history" modal={DashboardHistoryModal} />
+                <ModalRoute path="move" modal={DashboardMoveModal} />
+                <ModalRoute path="copy" modal={DashboardCopyModal} />
+                <ModalRoute path="details" modal={DashboardDetailsModal} />
+                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
+            </Route>
+        </Route>
 
         <Route path="/view" component={IsPc?MenuFrame:null}>
             <IndexRoute component={DashboardHome}/>
@@ -199,11 +218,7 @@ export const getRoutes = store => (
                 <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
                 <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
             </Route>
-            <Route
-                path="dashboard/:dashboardId"
-                title={t`Dashboard`}
-                component={DashboardApp}
-                >
+            <Route path="dashboard/:dashboardId" component={DashboardApp}>
                 <ModalRoute path="history" modal={DashboardHistoryModal} />
                 <ModalRoute path="move" modal={DashboardMoveModal} />
                 <ModalRoute path="copy" modal={DashboardCopyModal} />
@@ -211,30 +226,6 @@ export const getRoutes = store => (
                 <ModalRoute path="archive" modal={ArchiveDashboardModal} />
             </Route>
         </Route>
-
-        <Route path="/apphome" component={IsPc?MenuFrame:null}>
-            <IndexRoute component={DashboardHome}/>
-            <Route path="collection/:collectionId" component={CollectionLanding}>
-                <ModalRoute path="edit" modal={CollectionEdit} />
-                <ModalRoute path="archive" modal={ArchiveCollectionModal} />
-                <ModalRoute path="new_collection" modal={CollectionCreate} />
-                <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
-                <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
-            </Route>
-            <Route
-                path="dashboard/:dashboardId"
-                title={t`Dashboard`}
-                component={DashboardApp}
-                >
-                <ModalRoute path="history" modal={DashboardHistoryModal} />
-                <ModalRoute path="move" modal={DashboardMoveModal} />
-                <ModalRoute path="copy" modal={DashboardCopyModal} />
-                <ModalRoute path="details" modal={DashboardDetailsModal} />
-                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
-            </Route>
-        </Route>
-
-        <Route path="/manager" component={Overworld} />
 
         <Route
           path="/"
@@ -267,11 +258,7 @@ export const getRoutes = store => (
 
         <Route path="activity" component={HomepageApp} />
 
-        <Route
-          path="dashboard/:dashboardId"
-          title={t`Dashboard`}
-          component={DashboardApp}
-        >
+        <Route path="dashboard/:dashboardId" component={DashboardApp}> {/* title={t`Dashboard`} */}
           <ModalRoute path="history" modal={DashboardHistoryModal} />
           <ModalRoute path="move" modal={DashboardMoveModal} />
           <ModalRoute path="copy" modal={DashboardCopyModal} />

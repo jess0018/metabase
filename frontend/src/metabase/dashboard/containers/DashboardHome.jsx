@@ -125,7 +125,7 @@ export default class DashboardApp extends Component {
         </div>
       )
     }else{
-      window.location.href = IsPc ? "/view" : "/apphome" + "/dashboard/" + this.props.dashboardId
+      window.location.href = (IsPc ? "/view" : "/apphome") + "/dashboard/" + this.props.dashboardId
     }
   }
 }

@@ -7541,7 +7541,7 @@ msgstr "在{0}中有很多已保存的问题？创建集合以帮助管理它们
 #: frontend/src/metabase/routes.jsx:141 src/metabase/api/setup.clj
 #: src/metabase/email/messages.clj
 msgid "Metabase"
-msgstr "Metabase"
+msgstr "EasyBI"
 
 #: src/metabase/api/setup.clj
 msgid "Create metrics"
