@@ -91,7 +91,7 @@ class Overworld extends React.Component {
             <MetabotLogo />
           </Tooltip>
           <Box ml={2}>
-            <Subhead>{Greeting.sayHello(user.first_name)}</Subhead>
+            <Subhead>{"欢迎使用EasyBI"/*Greeting.sayHello(user.first_name)*/}</Subhead>
           </Box>
         </Flex>
         <CollectionItemsLoader collectionId="root">

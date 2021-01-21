@@ -281,7 +281,7 @@ export default class Navbar extends Component {
             ]}
           />
           )}
-          {IsPc && hasNativeWrite && (
+          {IsPc && hasNativeWrite && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}

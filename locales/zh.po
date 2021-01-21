@@ -2615,7 +2615,7 @@ msgstr "仪表盘"
 
 #: frontend/src/metabase/collections/components/ItemTypeFilterBar.jsx:23
 msgid "Questions"
-msgstr "问题"
+msgstr "图表"
 
 #: frontend/src/metabase/collections/components/ItemTypeFilterBar.jsx:28
 #: frontend/src/metabase/routes.jsx:314
@@ -2864,19 +2864,19 @@ msgstr "替换还是保存为新的？"
 
 #: frontend/src/metabase/containers/SaveQuestionModal.jsx:167
 msgid "Replace original question, \"{0}\""
-msgstr "替换原始问题“{0}”"
+msgstr "替换原始图表“{0}”"
 
 #: frontend/src/metabase/containers/SaveQuestionModal.jsx:171
 msgid "Save as new question"
-msgstr "保存为新问题"
+msgstr "保存为新图表"
 
 #: frontend/src/metabase/containers/SaveQuestionModal.jsx:92
 msgid "First, save your question"
-msgstr "首先，保存您的问题"
+msgstr "首先，保存您的图表"
 
 #: frontend/src/metabase/containers/SaveQuestionModal.jsx:93
 msgid "Save question"
-msgstr "保存问题"
+msgstr "保存图表"
 
 #: frontend/src/metabase/containers/SaveQuestionModal.jsx:132
 msgid "What is the name of your card?"
@@ -4196,7 +4196,7 @@ msgstr "自定义"
 #: frontend/src/metabase/query_builder/components/view/QuestionDescription.jsx:50
 #: frontend/src/metabase/query_builder/components/view/ViewHeader.jsx:157
 msgid "New question"
-msgstr "新的疑问"
+msgstr "新的图表"
 
 #: frontend/src/metabase/new_query/containers/NewQueryOptions.jsx:152
 msgid "Use the simple question builder to see trends, lists of things, or to create your own metrics."
@@ -4206,7 +4206,7 @@ msgstr "使用简单的疑问创建器来查看趋势、列表或者事物，或
 #: src/metabase/automagic_dashboards/core.clj
 #: resources/automagic_dashboards/table/example.yaml
 msgid "Native query"
-msgstr "原生查询"
+msgstr "SQL查询"
 
 #: frontend/src/metabase/new_query/containers/NewQueryOptions.jsx:111
 msgid "For more complicated questions, you can write your own SQL or native query."
@@ -5201,7 +5201,7 @@ msgstr "SQL"
 
 #: frontend/src/metabase/query_builder/components/QueryModeButton.jsx:48
 msgid "native query"
-msgstr "原生脚本"
+msgstr "SQL查询"
 
 #: frontend/src/metabase/query_builder/components/QueryModeButton.jsx:52
 msgid "Not Supported"
@@ -7755,7 +7755,7 @@ msgstr "字段 {0}"
 
 #: src/metabase/automagic_dashboards/core.clj
 msgid "\"{0}\" question"
-msgstr "问题 “{0}”"
+msgstr "图表 “{0}”"
 
 #: src/metabase/automagic_dashboards/comparison.clj
 #: src/metabase/automagic_dashboards/core.clj
@@ -12703,15 +12703,15 @@ msgstr "当某字段被用作筛选条件后, SQL语句中不应再包含该列�
 
 #: frontend/src/metabase/query_builder/components/view/NativeQueryButton.jsx:16
 msgid "View the native query"
-msgstr "查看原生查询"
+msgstr "查看SQL查询"
 
 #: frontend/src/metabase/query_builder/components/view/NativeQueryButton.jsx:17
 msgid "Native query for this question"
-msgstr "这个问题的原生查询"
+msgstr "SQL查询该图表"
 
 #: frontend/src/metabase/query_builder/components/view/NativeQueryButton.jsx:18
 msgid "Convert this question to a native query"
-msgstr "将这个问题转换为原生查询"
+msgstr "将这个图表转换为SQL查询"
 
 #: frontend/src/metabase/query_builder/components/view/NativeQueryButton.jsx:22
 msgid "SQL for this question"
@@ -14394,7 +14394,7 @@ msgstr "不得超过{0}个字符"
 
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:113
 msgid "Thanks for using Metabase!"
-msgstr "感谢您使用元数据库！"
+msgstr "感谢您使用EasyBI！"
 
 #: frontend/src/metabase/public/components/LogoBadge.jsx:20
 msgid "Powered by {0}"
@@ -17631,7 +17631,7 @@ msgstr "{1}"
 #: 
 msgctxt "This is a new information message on the new pulse creation page."
 msgid "Pulses are being phased out"
-msgstr "豆类正在被淘汰"
+msgstr "Pulses 已经过时"
 
 #: 
 msgctxt "An info message letting you know you can create dashboard subscriptions instead of pulses."
@@ -17680,7 +17680,7 @@ msgstr "UNIX时间戳(微秒)"
 
 #: frontend/src/metabase/pulse/components/PulseEdit.jsx:173
 msgid "Pulses are being phased out"
-msgstr "豆类正在被淘汰"
+msgstr "Pulses 已经过时"
 
 #: frontend/src/metabase/pulse/components/PulseEdit.jsx:174
 msgid "You can now set up {0} instead. We'll remove Pulses in a future release, and help you migrate any that you still have."
