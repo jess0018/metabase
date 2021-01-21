@@ -117,6 +117,7 @@ export default class DashboardHeader extends Component {
   };
 
   handleEdit(dashboard: DashboardWithCards) {
+    console.log(dashboard);
     this.props.onEditingChange(dashboard);
   }
 
@@ -277,7 +278,7 @@ export default class DashboardHeader extends Component {
       extraButtons.push(
         <Tooltip key="revision-history" tooltip={t`Revision history`}>
           <Link
-            to={location.pathname + "/history"}
+            to={location.pathname == "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/history" : location.pathname + "/history"}
             data-metabase-event={"Dashboard;Revisions"}
           >
             {t`Revision history`}
@@ -307,7 +308,7 @@ export default class DashboardHeader extends Component {
       extraButtons.push(
         <Link
           className={extraButtonClassNames}
-          to={location.pathname + "/details"}
+          to={location.pathname === "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/details" : location.pathname + "/details"}
           data-metabase-event={"Dashboard;EditDetails"}
         >
           {t`Change title and description`}
@@ -316,7 +317,7 @@ export default class DashboardHeader extends Component {
       extraButtons.push(
         <Link
           className={extraButtonClassNames}
-          to={location.pathname + "/history"}
+          to={location.pathname === "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/history" : location.pathname + "/history"}
           data-metabase-event={"Dashboard;History"}
         >
           {t`Revision history`}
@@ -325,7 +326,7 @@ export default class DashboardHeader extends Component {
       extraButtons.push(
         <Link
           className={extraButtonClassNames}
-          to={location.pathname + "/copy"}
+          to={location.pathname === "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/copy" : location.pathname + "/copy"}
           data-metabase-event={"Dashboard;Copy"}
         >
           {t`Duplicate`}
@@ -335,7 +336,7 @@ export default class DashboardHeader extends Component {
         extraButtons.push(
           <Link
             className={extraButtonClassNames}
-            to={location.pathname + "/move"}
+            to={location.pathname === "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/move" : location.pathname + "/move"}
             data-metabase-event={"Dashboard;Move"}
           >
             {t`Move`}
@@ -345,7 +346,7 @@ export default class DashboardHeader extends Component {
       extraButtons.push(
         <Link
           className={extraButtonClassNames}
-          to={location.pathname + "/archive"}
+          to={location.pathname === "/view" ? location.pathname + "/dashboard/"+dashboard.id + "/archive" : location.pathname + "/archive"}
           data-metabase-event={"Dashboard;Archive"}
         >
           {t`Archive`}
@@ -391,7 +392,6 @@ export default class DashboardHeader extends Component {
   render() {
     const { dashboard } = this.props;
 
-    console.log(this.props.isEditing);
     return (
       <Header
         headerClassName="wrapper"

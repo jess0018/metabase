@@ -3,9 +3,12 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
+import fitViewport from "metabase/hoc/FitViewPort";
 import title from "metabase/hoc/Title";
 import { t } from "ttag";
-import Dashboard from "metabase/dashboard/components/Dashboard.jsx";
+import titleWithLoadingTime from "metabase/hoc/TitleWithLoadingTime";
+
+import Dashboard from "metabase/dashboard/components/Dashboard";
 
 import { fetchDatabaseMetadata } from "metabase/redux/metadata";
 import { setErrorPage } from "metabase/redux/app";
@@ -17,6 +20,8 @@ import * as Urls from "metabase/lib/urls";
 
 import {
   getIsEditing,
+  getIsSharing,
+  getDashboardBeforeEditing,
   getIsEditingParameter,
   getIsDirty,
   getDashboardComplete,
@@ -27,6 +32,9 @@ import {
   getEditingParameter,
   getParameters,
   getParameterValues,
+  getLoadingStartTime,
+  getClickBehaviorSidebarDashcard,
+  getIsAddParameterPopoverOpen,
 } from "../selectors";
 import { getDatabases, getMetadata } from "metabase/selectors/metadata";
 import { getUserIsAdmin,getUser } from "metabase/selectors/user";
@@ -42,6 +50,8 @@ const mapStateToProps = (state, props) => {
 
     isAdmin: getUserIsAdmin(state, props),
     isEditing: getIsEditing(state, props),
+    isSharing: getIsSharing(state, props),
+    dashboardBeforeEditing: getDashboardBeforeEditing(state, props),
     isEditingParameter: getIsEditingParameter(state, props),
     isDirty: getIsDirty(state, props),
     dashboard: getDashboardComplete(state, props),
@@ -54,6 +64,9 @@ const mapStateToProps = (state, props) => {
     parameters: getParameters(state, props),
     parameterValues: getParameterValues(state, props),
     metadata: getMetadata(state),
+    loadingStartTime: getLoadingStartTime(state),
+    clickBehaviorSidebarDashcard: getClickBehaviorSidebarDashcard(state),
+    isAddParameterPopoverOpen: getIsAddParameterPopoverOpen(state),
   };
 };
 
@@ -75,7 +88,9 @@ type DashboardAppState = {
   mapStateToProps,
   mapDispatchToProps
 )
+@fitViewport
 @title(({ dashboard }) => dashboard && dashboard.name)
+@titleWithLoadingTime("loadingStartTime")
 // NOTE: should use DashboardControls and DashboardData HoCs here?
 export default class DashboardApp extends Component {
   state: DashboardAppState = {
@@ -110,14 +125,7 @@ export default class DashboardApp extends Component {
         </div>
       )
     }else{
-    return (
-      <div>
-        <Dashboard addCardOnLoad={this.state.addCardOnLoad} {...this.props} />
-        {/* For rendering modal urls */}
-        {this.props.children}
-        {IsPc?'':<div style={{position:'fixed',display:'flex',alignItems:'center',justifyContent:'center',bottom:'20px',right:'20px',width:'50px',height:'50px',borderRadius:'50%',cursor:'pointer',zIndex:'1000',color:'#fff',backgroundColor:'#1890ff'}} onClick={() => this.props.goCatalog()}>目录</div>}
-      </div>
-    );
+      window.location.href = IsPc ? "/view" : "/apphome" + "/dashboard/" + this.props.dashboardId
     }
   }
 }

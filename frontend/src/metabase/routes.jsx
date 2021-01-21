@@ -92,6 +92,7 @@ import Overworld from "metabase/containers/Overworld";
 import ArchiveApp from "metabase/home/containers/ArchiveApp";
 import SearchApp from "metabase/home/containers/SearchApp";
 
+import Dashboard from "metabase/dashboard/components/Dashboard";
 import DashboardHome from "metabase/dashboard/containers/DashboardHome";
 import MenuFrame from "metabase/containers/MenuFrame";
 
@@ -185,9 +186,6 @@ export const getRoutes = store => (
       <Route component={IsAuthenticated}>
         {/* The global all hands rotues, things in here are for all the folks */}
 
-        <Route path="/manager" component={Overworld} />
-        <Route path="/apphome" component={DashboardHome} />
-
         {
             IsPc ?  <Redirect from="/" to="/view"/> : <Redirect from="/" to="/apphome"/>
         }
@@ -213,6 +211,30 @@ export const getRoutes = store => (
                 <ModalRoute path="archive" modal={ArchiveDashboardModal} />
             </Route>
         </Route>
+
+        <Route path="/apphome" component={IsPc?MenuFrame:null}>
+            <IndexRoute component={DashboardHome}/>
+            <Route path="collection/:collectionId" component={CollectionLanding}>
+                <ModalRoute path="edit" modal={CollectionEdit} />
+                <ModalRoute path="archive" modal={ArchiveCollectionModal} />
+                <ModalRoute path="new_collection" modal={CollectionCreate} />
+                <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
+                <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
+            </Route>
+            <Route
+                path="dashboard/:dashboardId"
+                title={t`Dashboard`}
+                component={DashboardApp}
+                >
+                <ModalRoute path="history" modal={DashboardHistoryModal} />
+                <ModalRoute path="move" modal={DashboardMoveModal} />
+                <ModalRoute path="copy" modal={DashboardCopyModal} />
+                <ModalRoute path="details" modal={DashboardDetailsModal} />
+                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
+            </Route>
+        </Route>
+
+        <Route path="/manager" component={Overworld} />
 
         <Route
           path="/"

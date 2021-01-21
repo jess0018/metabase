@@ -66,6 +66,7 @@ const mapDispatchToProps = {
   fetchDatabaseMetadata,
   setErrorPage,
   onChangeLocation: push,
+  goCatalog:()=> push('/manager')
 };
 
 type DashboardAppState = {
@@ -93,11 +94,15 @@ export default class DashboardApp extends Component {
   }
 
   render() {
+
+    const IsPc=!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
     return (
       <div className="shrink-below-content-size full-height">
         <Dashboard addCardOnLoad={this.state.addCardOnLoad} {...this.props} />
         {/* For rendering modal urls */}
         {this.props.children}
+        {IsPc?'':<div style={{position:'fixed',display:'flex',alignItems:'center',justifyContent:'center',bottom:'20px',right:'20px',width:'50px',height:'50px',borderRadius:'50%',cursor:'pointer',zIndex:'1000',color:'#fff',backgroundColor:'#1890ff'}} onClick={() => this.props.goCatalog()}>目录</div>}
       </div>
     );
   }
