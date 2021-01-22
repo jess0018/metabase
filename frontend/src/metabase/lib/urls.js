@@ -18,8 +18,6 @@ export const newPulse = () => `/pulse/create`;
 export const newCollection = collectionId =>
   `collection/${collectionId}/new_collection`;
 
-export const managerQuestion = () => "/manager";
-
 export function question(cardId, hash = "", query = "") {
   if (hash && typeof hash === "object") {
     hash = serializeCardForUrl(hash);

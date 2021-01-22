@@ -15,7 +15,7 @@ export default class LegendHorizontal extends Component {
         className={cx(className, styles.Legend, styles.horizontal)}
       >
         {titles.map((title, index) => (
-          <li key={index} style={{fontSize:11}}>
+          <li key={index}>
             <LegendItem
               ref={"legendItem" + index}
               title={title}

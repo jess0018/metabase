@@ -269,7 +269,6 @@ export default class AccordionList extends Component {
 
     const rows = [];
     for (const [sectionIndex, section] of sections.entries()) {
-      if (section.datebase_host && section.datebase_host== 'odps') continue;
       const isLastSection = sectionIndex === sections.length - 1;
       if (
         section.name &&

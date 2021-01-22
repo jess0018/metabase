@@ -29,7 +29,7 @@ export default class DateMonthYearWidget extends React.Component {
 
   static format = value => {
     const m = moment(value, "YYYY-MM");
-    return m.isValid() ? m.format("YYYY-MM") : "";
+    return m.isValid() ? m.format("MMMM, YYYY") : "";
   };
 
   componentWillUnmount() {
@@ -86,6 +86,6 @@ const Month = ({ month, selected, onClick }) => (
   >
     {moment()
       .month(month)
-      .format("MM")}
+      .format("MMMM")}
   </div>
 );

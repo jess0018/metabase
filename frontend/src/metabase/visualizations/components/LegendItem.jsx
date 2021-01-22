@@ -40,8 +40,6 @@ export default class LegendItem extends Component {
       description,
       onClick,
       infoClassName,
-      skip_link_title,
-      skip_link,
     } = this.props;
     return (
       <LegendLink

@@ -29,8 +29,6 @@ import {
 import _ from "underscore";
 import cx from "classnames";
 
-import { assoc, setIn } from "icepick";
-
 const MUTE_STYLE = "opacity: 0.25;";
 for (let i = 0; i < MAX_SERIES; i++) {
   addCSSRule(
@@ -283,11 +281,6 @@ export default class LineAreaBarChart extends Component {
 
     const hasTitle = showTitle && settings["card.title"];
 
-    let newSeries=series
-    if(settings["card.skip_link"]){
-        newSeries =setIn(newSeries, [0, "card", "skip_link"], settings["card.skip_link"]) 
-    }
-
     const defaultSeries = [
       {
         card: {
@@ -306,7 +299,7 @@ export default class LineAreaBarChart extends Component {
       >
         {hasTitle && (
           <TitleLegendHeader
-            series={newSeries}
+            series={series}
             settings={settings}
             onChangeCardAndRun={onChangeCardAndRun}
             actionButtons={actionButtons}

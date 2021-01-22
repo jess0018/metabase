@@ -152,20 +152,3 @@
 .stacking-context {
   transform: scale(1);
 }
-
-.container{
-  width: 100%;
-  height:calc(100% - 56px);
-}
-.container .main{
-  float: left;
-  overflow: auto;
-  width: calc(100% - 250px);
-  height: 100%;
-}
-.container .left-menu{
-  width: 250px;
-  overflow: auto;
-  height: 100%;
-  float: left;
-}

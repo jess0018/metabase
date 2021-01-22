@@ -5,18 +5,15 @@ import type { DateSeparator } from "metabase/lib/formatting";
 import type { DatetimeUnit } from "metabase-types/types/Query";
 
 export type DateStyle =
+  | "M/D/YYYY"
+  | "D/M/YYYY"
   | "YYYY/M/D"
-  | "YYYY/MM/DD"
-  | "YYYY年MM月DD日"
-  | "YYYYMMDD"
-  | "MM/DD"
-  | "MMDD"
-  | "MM-DD"
-  | "M月"
-  | "MM月DD日"
-  | "DD";
+  | "MMMM D, YYYY"
+  | "MMMM D, YYYY"
+  | "D MMMM, YYYY"
+  | "dddd, MMMM D, YYYY";
 
-export type TimeStyle = "h:mm A" | "k:mm";
+export type TimeStyle = "h:mm A" | "k:mm" | "h A";
 
 export type MomentFormat = string; // moment.js format strings
 export type DateFormat = MomentFormat;
@@ -26,9 +23,8 @@ export type TimeEnabled = null | "minutes" | "seconds" | "milliseconds";
 
 const DEFAULT_DATE_FORMATS: { [unit: DatetimeUnit]: MomentFormat } = {
   year: "YYYY",
-  quarter: "YYYY-[Q]Q",
+  quarter: "[Q]Q - YYYY",
   "minute-of-hour": "m",
-  "hour-of-day": "h A",
   "day-of-week": "dddd",
   "day-of-month": "D",
   "day-of-year": "DDD",
@@ -41,41 +37,29 @@ const DEFAULT_DATE_FORMATS: { [unit: DatetimeUnit]: MomentFormat } = {
 const DATE_STYLE_TO_FORMAT: {
   [style: DateStyle]: { [unit: DatetimeUnit]: MomentFormat },
 } = {
+  "M/D/YYYY": {
+    month: "M/YYYY",
+  },
+  "D/M/YYYY": {
+    month: "M/YYYY",
+  },
   "YYYY/M/D": {
     month: "YYYY/M",
     quarter: "YYYY - [Q]Q",
-    week: "YYYY/M/D",
   },
-  "YYYY/MM/DD": {
-    month: "YYYY/MM",
+  "MMMM D, YYYY": {
+    month: "MMMM, YYYY",
   },
-  "YYYY年MM月DD日": {
-    month: "YYYY年MM月",
+  "D MMMM, YYYY": {
+    month: "MMMM, YYYY",
   },
-  "YYYYMMDD": {
-    month: "YYYYMM",
+  "dddd, MMMM D, YYYY": {
+    week: "MMMM D, YYYY",
+    month: "MMMM, YYYY",
   },
-  "MM/DD": {
-    month: "MM/DD",
-  },
-  "MMDD": {
-    month: "MMDD",
-  },
-  "MM-DD": {
-    month: "MM-DD",
-  },
-  "M月": {
-    month: "MM月",
-  },
-  "MM月DD日": {
-    month: "MM月DD日",
-  },
-  "DD": {
-    month: "DD",
-  }
 };
 
-export const DEFAULT_DATE_STYLE: DateStyle = "YYYY/MM/DD";
+export const DEFAULT_DATE_STYLE: DateStyle = "MMMM D, YYYY";
 
 export function getDateFormatFromStyle(
   style: DateStyle,

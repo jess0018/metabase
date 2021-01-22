@@ -30,7 +30,6 @@ const SearchWrapper = Flex.extend`
 
 const SearchInput = styled.input`
   ${space} background-color: transparent;
-  padding: 8px 16px 8px 8px;
   width: 100%;
   border: none;
   color: white;
@@ -94,9 +93,8 @@ export default class SearchBar extends React.Component {
         >
           <Icon name="search" ml={["10px", 2]} />
           <SearchInput
-            w={1}
-            py={1}
-            pr={1}
+            py={2}
+            pr={[0, 2]}
             pl={1}
             ref={ref => (this.searchInput = ref)}
             value={searchText}

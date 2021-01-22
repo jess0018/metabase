@@ -115,17 +115,30 @@ function getDateStyleOptionsForUnit(
   }
 
   const options = [
-    dateStyleOption("YYYY/M/D",unit,null,abbreviate,separator),
-    dateStyleOption("YYYY/MM/DD",unit,null,abbreviate,separator),
-    dateStyleOption("YYYY年MM月DD日",unit,null,abbreviate,separator),
-    dateStyleOption("YYYYMMDD",unit,null,abbreviate,separator),
-    dateStyleOption("MM/DD", unit, null, abbreviate, separator),
-    dateStyleOption("MMDD", unit, null, abbreviate, separator),
-    dateStyleOption("MM-DD", unit, null, abbreviate, separator),
-    dateStyleOption("M月", unit, null, abbreviate, separator),
-    dateStyleOption("MM月DD日", unit, null, abbreviate, separator),
-    dateStyleOption("DD", unit, null, abbreviate, separator),
-
+    dateStyleOption("MMMM D, YYYY", unit, null, abbreviate, separator),
+    dateStyleOption("D MMMM, YYYY", unit, null, abbreviate, separator),
+    dateStyleOption("dddd, MMMM D, YYYY", unit, null, abbreviate, separator),
+    dateStyleOption(
+      "M/D/YYYY",
+      unit,
+      hasDay(unit) ? "month, day, year" : null,
+      abbreviate,
+      separator,
+    ),
+    dateStyleOption(
+      "D/M/YYYY",
+      unit,
+      hasDay(unit) ? "day, month, year" : null,
+      abbreviate,
+      separator,
+    ),
+    dateStyleOption(
+      "YYYY/M/D",
+      unit,
+      hasDay(unit) ? "year, month, day" : null,
+      abbreviate,
+      separator,
+    ),
   ];
   const seen = new Set();
   return options.filter(option => {

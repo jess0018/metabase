@@ -126,9 +126,6 @@ databaseChangeLog:
           - column:
               name: reset_triggered
               type: BIGINT
-          - column:
-              name: home_dashboardId
-              type: int
           tableName: core_user
       - createTable:
           columns:
@@ -743,12 +740,6 @@ databaseChangeLog:
           - column:
               name: description
               type: text
-          - column:
-              name: skip_link_title
-              type: varchar(100)
-          - column:
-              name: skip_link
-              type: varchar(200)
           - column:
               constraints:
                 nullable: false

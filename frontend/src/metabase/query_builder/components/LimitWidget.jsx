@@ -10,7 +10,7 @@ export default class LimitWidget extends Component {
   };
 
   static defaultProps = {
-    options: [25, 100, 1000, 5000, 10000],
+    options: [undefined, 1, 10, 25, 100, 1000],
   };
 
   render() {

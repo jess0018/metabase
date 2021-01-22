@@ -19,8 +19,6 @@ ENV LC_CTYPE en_US.UTF-8
 # gettext: translations
 # java-cacerts: installs updated cacerts to /etc/ssl/certs/java/cacerts
 
-RUN echo "https://mirrors.aliyun.com/alpine/v3.6/main/" >/etc/apk/repositories && echo "https://mirrors.aliyun.com/alpine/v3.6/community/" >>/etc/apk/repositories
-
 RUN apk add --no-cache coreutils bash yarn git wget curl make gettext java-cacerts
 
 # lein:    backend dependencies and building

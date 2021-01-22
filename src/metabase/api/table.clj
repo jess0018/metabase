@@ -317,7 +317,7 @@
 (api/defendpoint GET "/card__:id/query_metadata"
   "Return metadata for the 'virtual' table for a Card."
   [id]
-  (let [{:keys [database_id] :as card } (db/select-one [Card :id :dataset_query :result_metadata :name :description :skip_link_title :skip_link
+  (let [{:keys [database_id] :as card } (db/select-one [Card :id :dataset_query :result_metadata :name :description
                                                         :collection_id :database_id]
                                           :id id)]
     (-> card

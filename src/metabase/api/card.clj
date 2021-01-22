@@ -213,7 +213,7 @@
   [{:keys [dataset_query result_metadata metadata_checksum], :as card-data}]
   ;; `zipmap` instead of `select-keys` because we want to get `nil` values for keys that aren't present. Required by
   ;; `api/maybe-reconcile-collection-position!`
-  (let [data-keys            [:dataset_query :description :display :name :skip_link_title :skip_link
+  (let [data-keys            [:dataset_query :description :display :name
                               :visualization_settings :collection_id :collection_position]
         card-data            (assoc (zipmap data-keys (map card-data data-keys))
                                     :creator_id api/*current-user-id*)
@@ -236,11 +236,9 @@
 (api/defendpoint ^:returns-chan POST "/"
   "Create a new `Card`."
   [:as {{:keys [collection_id collection_position dataset_query description display metadata_checksum name
-                result_metadata visualization_settings skip_link_title skip_link], :as body} :body}]
+                result_metadata visualization_settings], :as body} :body}]
   {name                   su/NonBlankString
    description            (s/maybe su/NonBlankString)
-   skip_link_title        (s/maybe su/NonBlankString)
-   skip_link              (s/maybe su/NonBlankString)
    display                su/NonBlankString
    visualization_settings su/Map
    collection_id          (s/maybe su/IntGreaterThanZero)
@@ -402,7 +400,7 @@
         ;; `collection_id` and `description` can be `nil` (in order to unset them). Other values should only be
         ;; modified if they're passed in as non-nil
         (u/select-keys-when card-updates
-          :present #{:collection_id :collection_position :description :skip_link_title :skip_link}
+          :present #{:collection_id :collection_position :description}
           :non-nil #{:dataset_query :display :name :visualization_settings :archived :enable_embedding
                      :embedding_params :result_metadata})))
     ;; Fetch the updated Card from the DB
@@ -416,14 +414,12 @@
 (api/defendpoint ^:returns-chan PUT "/:id"
   "Update a `Card`."
   [id :as {{:keys [dataset_query description display name visualization_settings archived collection_id
-                   collection_position enable_embedding embedding_params result_metadata metadata_checksum skip_link_title skip_link]
+                   collection_position enable_embedding embedding_params result_metadata metadata_checksum]
             :as   card-updates} :body}]
   {name                   (s/maybe su/NonBlankString)
    dataset_query          (s/maybe su/Map)
    display                (s/maybe su/NonBlankString)
    description            (s/maybe s/Str)
-   skip_link_title        (s/maybe s/Str)
-   skip_link              (s/maybe s/Str)
    visualization_settings (s/maybe su/Map)
    archived               (s/maybe s/Bool)
    enable_embedding       (s/maybe s/Bool)

@@ -33,7 +33,7 @@
 (defn- driver-dependencies-satisfied?
   "If a driver's project specifies a list of dependency filenames like
 
-    {:include-drivers-dependencies [#\"^ojdbc\d+\\.jar$\"]}
+    {:include-drivers-dependencies [#\"^ojdbc[78]\\.jar$\"]}
 
   Make sure a file matching that name pattern exists in the `/plugins` directory."
   [driver]

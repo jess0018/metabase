@@ -18,7 +18,6 @@
             [metabase.models.permissions :as perms]
             [metabase.models.pulse :as pulse :refer [Pulse]]
             [metabase.models.pulse-card :refer [PulseCard]]
-            [metabase.models.user :refer [User]]
             [metabase.util :as u]
             [metabase.util.schema :as su]
             [schema.core :as s]
@@ -54,23 +53,23 @@
       (for [collection collections]
         (dissoc collection ::collection.root/is-root?)))))
 
-; (api/defendpoint GET "/tree"
-;   "Similar to `GET /`, but returns Collections in a tree structure, e.g.
+(api/defendpoint GET "/tree"
+  "Similar to `GET /`, but returns Collections in a tree structure, e.g.
 
-;     [{:name     \"A\"
-;       :children [{:name \"B\"}
-;                  {:name     \"C\"
-;                   :children [{:name     \"D\"
-;                               :children [{:name \"E\"}]}
-;                              {:name     \"F\"
-;                               :children [{:name \"G\"}]}]}]}
-;      {:name \"H\"}]"
-;   []
-;   (collection/collections->tree
-;    (db/select Collection
-;      {:where (collection/visible-collection-ids->honeysql-filter-clause
-;               :id
-;               (collection/permissions-set->visible-collection-ids @api/*current-user-permissions-set*))})))
+    [{:name     \"A\"
+      :children [{:name \"B\"}
+                 {:name     \"C\"
+                  :children [{:name     \"D\"
+                              :children [{:name \"E\"}]}
+                             {:name     \"F\"
+                              :children [{:name \"G\"}]}]}]}
+     {:name \"H\"}]"
+  []
+  (collection/collections->tree
+   (db/select Collection
+     {:where (collection/visible-collection-ids->honeysql-filter-clause
+              :id
+              (collection/permissions-set->visible-collection-ids @api/*current-user-permissions-set*))})))
 
 
 ;;; --------------------------------- Fetching a single Collection & its 'children' ----------------------------------
@@ -369,13 +368,5 @@
        dejsonify-graph
        (collection.graph/update-graph! namespace))
   (collection.graph/graph namespace))
-
-(api/defendpoint POST "/sethome"
-  "Set as home page."
-  [:as {{:keys [user_id home_dashboardId]} :body}]
-  {user_id   (s/maybe su/IntGreaterThanZero)
-  home_dashboardId   (s/maybe su/IntGreaterThanZero)}
-  ;; Now Set as home page
-  (db/update! User user_id :home_dashboardId home_dashboardId))
 
 (api/define-routes)

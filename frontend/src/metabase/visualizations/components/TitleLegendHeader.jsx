@@ -16,12 +16,11 @@ export default function TitleLegendHeader({
   const isComposedOfMultipleQuestions = cardIds.length > 1;
   const name = settings["card.title"] || getIn(series, [0, "card", "name"]);
 
-  if (settings["card.title"]) {
+  if (name) {
     const titleHeaderSeries = [
       {
         card: {
-          name: settings["card.title"],
-          skip_link:settings["card.skip_link"],
+          name,
           ...(isComposedOfMultipleQuestions
             ? {}
             : {

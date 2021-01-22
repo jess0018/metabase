@@ -29,9 +29,9 @@ export default class DateRangeWidget extends Component {
   static format = value => {
     const { start, end } = parseDateRangeValue(value);
     return start && end
-      ? moment(start).format("YYYY-MM-DD") +
-          " ~ " +
-          moment(end).format("YYYY-MM-DD")
+      ? moment(start).format("MMMM D, YYYY") +
+          " - " +
+          moment(end).format("MMMM D, YYYY")
       : "";
   };
 
