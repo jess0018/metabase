@@ -192,7 +192,8 @@ export const getRoutes = store => (
             IsPc ?  <Redirect from="/" to="/view"/> : <Redirect from="/" to="/apphome"/>
         }
 
-        <Route path="/apphome" component={DashboardHome}>
+        <Route path="/apphome" component={IsPc?MenuFrame:null}>
+            <IndexRoute component={DashboardHome}/>
             <Route path="collection/:collectionId" component={CollectionLanding}>
                 <ModalRoute path="edit" modal={CollectionEdit} />
                 <ModalRoute path="archive" modal={ArchiveCollectionModal} />

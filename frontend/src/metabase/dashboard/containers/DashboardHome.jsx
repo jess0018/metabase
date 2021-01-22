@@ -113,7 +113,7 @@ export default class DashboardApp extends Component {
       return (
         <div>
         <EmptyState
-          title={'您可以进入看板页面设置你专属的首页'}
+          title={'您可以将常用的看板设置为您的首页'}
           illustrationElement={
             <RetinaImage
               src="app/img/collection-empty-state.png"
@@ -125,7 +125,7 @@ export default class DashboardApp extends Component {
         </div>
       )
     }else{
-      window.location.href = (IsPc ? "/view" : "/apphome") + "/dashboard/" + this.props.dashboardId
+      window.location.href = (IsPc ? "/view/dashboard/" : "/apphome/dashboard/") + this.props.dashboardId
     }
   }
 }

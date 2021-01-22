@@ -30,7 +30,7 @@ const SearchWrapper = Flex.extend`
 
 const SearchInput = styled.input`
   ${space} background-color: transparent;
-  padding: 8px 16px 8px 8px;
+  padding: 8px 8px 8px 8px;
   width: 100%;
   border: none;
   color: white;
