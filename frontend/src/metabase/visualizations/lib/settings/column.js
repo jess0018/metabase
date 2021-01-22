@@ -197,7 +197,7 @@ export const DATE_COLUMN_SETTINGS = {
     getProps: (column: Column, settings: ColumnSettings) => {
       const style = /\//.test(settings["date_style"])
         ? settings["date_style"]
-        : "M/D/YYYY";
+        : "YYYY/MM/DD";
       return {
         options: [
           { name: style, value: "/" },
