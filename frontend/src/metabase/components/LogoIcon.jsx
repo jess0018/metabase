@@ -5,7 +5,8 @@ import { PLUGIN_LOGO_ICON_COMPONENTS } from "metabase/plugins";
 
 class DefaultLogoIcon extends Component {
   static defaultProps = {
-    height: 32,
+    width: 100,
+    height: 25,
   };
   static propTypes = {
     width: PropTypes.number,
