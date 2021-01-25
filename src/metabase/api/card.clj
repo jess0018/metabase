@@ -422,8 +422,6 @@
    dataset_query          (s/maybe su/Map)
    display                (s/maybe su/NonBlankString)
    description            (s/maybe s/Str)
-   skip_link_title        (s/maybe s/Str)
-   skip_link              (s/maybe s/Str)
    visualization_settings (s/maybe su/Map)
    archived               (s/maybe s/Bool)
    enable_embedding       (s/maybe s/Bool)

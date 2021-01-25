@@ -125,8 +125,8 @@ function getDateStyleOptionsForUnit(
     dateStyleOption("M月", unit, null, abbreviate, separator),
     dateStyleOption("MM月DD日", unit, null, abbreviate, separator),
     dateStyleOption("DD", unit, null, abbreviate, separator),
-
   ];
+  
   const seen = new Set();
   return options.filter(option => {
     const format = getDateFormatFromStyle(option.value, unit);

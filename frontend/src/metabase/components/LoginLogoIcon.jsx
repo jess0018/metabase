@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import cx from "classnames";
 
 export default class LogoIcon extends Component {
   static defaultProps = {

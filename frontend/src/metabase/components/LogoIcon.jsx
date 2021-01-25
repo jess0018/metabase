@@ -1,16 +1,13 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import cx from "classnames";
 
 import { PLUGIN_LOGO_ICON_COMPONENTS } from "metabase/plugins";
 
 class DefaultLogoIcon extends Component {
   static defaultProps = {
-    width: 100,
-    height: 25,
+    height: 32,
   };
   static propTypes = {
-    size: PropTypes.number,
     width: PropTypes.number,
     height: PropTypes.number,
     dark: PropTypes.bool,

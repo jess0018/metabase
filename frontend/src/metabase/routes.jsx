@@ -92,7 +92,6 @@ import Overworld from "metabase/containers/Overworld";
 import ArchiveApp from "metabase/home/containers/ArchiveApp";
 import SearchApp from "metabase/home/containers/SearchApp";
 
-import Dashboard from "metabase/dashboard/components/Dashboard";
 import DashboardHome from "metabase/dashboard/containers/DashboardHome";
 import MenuFrame from "metabase/containers/MenuFrame";
 

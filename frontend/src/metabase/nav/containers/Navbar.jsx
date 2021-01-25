@@ -198,7 +198,7 @@ export default class Navbar extends Component {
         py={1}
         pr={1}
       >
-        <Flex align="center" justify="center">
+        <Flex style={{ minWidth: 64 }} align="center" justify="center">
           <Link
             to="/"
             data-metabase-event={"Navbar;Logo"}
@@ -217,7 +217,7 @@ export default class Navbar extends Component {
           </Link>
         </Flex>
         <Flex className="flex-full z1" pl={0} pr={0} align="center">
-          <Box w={1} pr={0} style={{ maxWidth: 500 }}>
+          <Box w={1} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}

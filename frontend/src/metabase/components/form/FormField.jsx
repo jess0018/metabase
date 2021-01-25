@@ -61,7 +61,7 @@ export default class FormField extends Component {
           "Form--fieldError": !!error,
           flex: horizontal,
         })}
-        id={"formField-"}
+        id={`formField-${name.replace(/\./g, "-")}`}
       >
         {(title || description) && (
           <div>

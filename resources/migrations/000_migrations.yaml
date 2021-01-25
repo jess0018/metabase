@@ -126,10 +126,10 @@ databaseChangeLog:
           - column:
               name: reset_triggered
               type: BIGINT
+          tableName: core_user
           - column:
               name: home_dashboardId
               type: int
-          tableName: core_user
       - createTable:
           columns:
           - column:

@@ -231,16 +231,16 @@ export default class Scalar extends Component {
         <div className="Card-title absolute top right p1 px2">
           {actionButtons}
           {(skip_link && skip_link.length>0 && !actionButtons) && (
-          <Tooltip tooltip="查看关联看板">
-            <Link
-            target="_blank"
-            to={skip_link}
-            style={{marginLeft:'auto'}}
-          >
-            <Icon type="link" style={{ fontSize: '16px',fontWeight:'700' }}  />
-          </Link>
-          </Tooltip>
-        )}
+            <Tooltip tooltip="查看关联看板">
+              <Link
+              target="_blank"
+              to={skip_link}
+              style={{marginLeft:'auto'}}
+            >
+              <Icon type="link" style={{ fontSize: '16px',fontWeight:'700' }}  />
+            </Link>
+            </Tooltip>
+          )}
         </div>
         <Ellipsified
           className={cx("fullscreen-normal-text fullscreen-night-text", {

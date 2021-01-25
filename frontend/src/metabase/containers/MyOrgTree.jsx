@@ -2,7 +2,6 @@ import React, { Component } from "react";
 import OrgTree from 'metabase/org_tree';
 import { MetabaseApi } from "metabase/services";
 import 'metabase/org_tree/org_tree.css';
-import { indexOf } from "underscore";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
@@ -28,37 +27,37 @@ export default class MyOrgTree extends Component {
     }
 
     componentDidUpdate(prevProps){
-        if(this.props.parameterValues==this.state.parameterValues){
+        if(this.props.parameterValues === this.state.parameterValues){
             return
         }
-        const {parameters,parameterValues}=this.props;
+        const {parameters,parameterValues} = this.props;
         this.setState({parameterValues:parameterValues});
         if(parameters && parameterValues){
             let date=null;
             parameters.forEach(p=>{
-                if(p.type=='date/month-year'){
-                    date=parameterValues[p.id]
+                if(p.type === 'date/month-year'){
+                    date = parameterValues[p.id]
                 }
             });
             
             if(date){
-                const now=new Date();
-                const d=new Date(date);
+                const now = new Date();
+                const d = new Date(date);
                 const nowDay =now.getDay(); //当前天
                 const dMonth = d.getMonth(); //当前月 
                 const dYear = d.getFullYear(); //当前年 
                 const nowMonth = now.getMonth(); //当前月 
                 const nowYear = now.getFullYear(); //当前年 
                 const monthEndDate = new Date(dYear, dMonth+1, 0);
-                let result_date=null;
+                let result_date = null;
                 
-                if(dYear==nowYear && dMonth==nowMonth && nowDay !=1 ){ 
+                if(dYear === nowYear && dMonth === nowMonth && nowDay !=1 ){ 
                     //当月 获取前一天数据
-                    result_date= this.dateFormat("YYYY-mm-dd HH:MM", new Date(now.getTime() - 24*60*60*1000));
+                    result_date = this.dateFormat("YYYY-mm-dd HH:MM", new Date(now.getTime() - 24*60*60*1000));
                 }
                 else{
                     //其他月 前一月最后一天
-                    result_date= this.dateFormat("YYYY-mm-dd HH:MM", monthEndDate);
+                    result_date = this.dateFormat("YYYY-mm-dd HH:MM", monthEndDate);
                 }
 
                 console.info('result_date',result_date);
@@ -82,61 +81,61 @@ export default class MyOrgTree extends Component {
         for (let k in opt) {
             ret = new RegExp("(" + k + ")").exec(fmt);
             if (ret) {
-                fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
+                fmt = fmt.replace(ret[1], (ret[1].length === 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
             }
         }
         return fmt
     }
 
     getJsonTree(rows,parentId){
-         const itemArr=[];
-         for(let i=0;i<rows.length;i++){
-             const node=rows[i];
-             if(node[1]==parentId){
-                 const id=node[2];
-                 const label=node[3];
-                 let dget=node[4];//目标值
-                 let actual=node[5];
+         const itemArr = [];
+         for(let i = 0; i < rows.length; i++){
+             const node = rows[i];
+             if(node[1] === parentId){
+                 const id = node[2];
+                 const label = node[3];
+                 let dget = node[4];//目标值
+                 let actual = node[5];
 
-                 let comlv=0;
+                 let comlv = 0;
 
-                 if(dget == null){
+                 if(dget === null){
                     dget=''  
                  }
 
-                 if(dget>0){
+                 if(dget > 0){
                     comlv = actual/dget
                  }
 
-                 if(actual == null){
+                 if(actual === null){
                     actual=''  
                  }
                  
-                 if(label.indexOf('(万)')!=-1) {
-                        actual=actual/10000
-                        dget=dget/10000
+                 if(label.indexOf('(万)') !== -1) {
+                        actual = actual/10000
+                        dget = dget/10000
                  }
                  
-                if(label.indexOf('(万分)')!=-1) {
-                    actual=actual*10000
-                    dget=dget*10000
+                if(label.indexOf('(万分)') !== -1) {
+                    actual = actual*10000
+                    dget = dget*10000
                 }
-                if(label.indexOf('(%)')!=-1) {
-                    actual=actual*100
-                    dget=dget*100
+                if(label.indexOf('(%)') !== -1) {
+                    actual = actual*100
+                    dget = dget*100
                 }
-                if(id=='1014' || id=='1017' || id=='1002'){
-                    actual=actual.toFixed(1)
-                    dget=dget.toFixed(1)
+                if(id === '1014' || id === '1017' || id === '1002'){
+                    actual = actual.toFixed(1)
+                    dget = dget.toFixed(1)
                 }else{
-                    actual=Math.round(actual)
-                    dget=Math.round(dget)
+                    actual = Math.round(actual)
+                    dget = Math.round(dget)
                 }
 
-                const newNode={id:id,label:label,actual:actual,dget:dget,comlv:Math.round(comlv*100)+"%",expand:true};
-                const children=this.getJsonTree(rows,node[2]);
-                if(children && children.length>0){
-                    newNode.children=children;
+                const newNode = {id:id,label:label,actual:actual,dget:dget,comlv:Math.round(comlv*100) + "%",expand:true};
+                const children = this.getJsonTree(rows,node[2]);
+                if(children && children.length > 0){
+                    newNode.children = children;
                 }
                 itemArr.push(newNode);
             }
@@ -145,15 +144,15 @@ export default class MyOrgTree extends Component {
     }
 
    async getDatas(date)  {
-        this.leave=0;
-        let query=`select a.dis_Id,a.parent_id,a.id,trim(a.kpi_name) as kpi_name,a.kpi_budget,IFNULL(b.kpi_value,0) kpi_value from 
+        this.leave = 0;
+        let query = `select a.dis_Id,a.parent_id,a.id,trim(a.kpi_name) as kpi_name,a.kpi_budget,IFNULL(b.kpi_value,0) kpi_value from 
         (select * from dim_nbu_kpi_budget_m where month_Id=month(DATE_ADD(CURDATE(),INTERVAL -1 day) ) and year_id=year(now())) a
         left join 
         (select * from dm_nbu_kpi_real_m where etl_date=DATE_ADD(CURDATE(),INTERVAL -1 day) ) b
         on a.id=b.kpi_Id
         order by a.dis_Id`;
         if(date){
-            query=`select a.dis_Id,a.parent_id,a.id,trim(a.kpi_name) as kpi_name,a.kpi_budget,IFNULL(b.kpi_value,0) kpi_value from 
+            query = `select a.dis_Id,a.parent_id,a.id,trim(a.kpi_name) as kpi_name,a.kpi_budget,IFNULL(b.kpi_value,0) kpi_value from 
         (select * from dim_nbu_kpi_budget_m where month_Id=month('${date}') and year_id=year('${date}')) a
         left join 
         (select * from dm_nbu_kpi_real_m where etl_date='${date}' ) b
@@ -171,11 +170,11 @@ export default class MyOrgTree extends Component {
             parameters: []
         }); 
         if(result && result.data && result.data.rows){
-            const jsonTree=this.getJsonTree(result.data.rows,0);
+            const jsonTree = this.getJsonTree(result.data.rows,0);
             (function ps(data, depth) {
                 for (let v of data) {
-                  if(depth>=2){
-                      v.expand=false;
+                  if(depth >= 2){
+                      v.expand = false;
                   }
                   if (Object.prototype.hasOwnProperty.call(v, 'children') && v.children.length) { //v.hasOwnProperty('children')
                     ps(v.children, depth + 1);
@@ -189,16 +188,17 @@ export default class MyOrgTree extends Component {
     render(){
         if(this.state.data){
             return(
-                <div style={{position:'relative'}}>
-                <div style={{position:'absolute',display:'flex',alignItems:'center',justifyContent:'center',top:'-50px',right:'20px',width:'100px',height:'30px',cursor:'pointer',zIndex:'1000',color:'#fff',backgroundColor:'#1890ff'}} onClick={() => this.props.goDownload()}>去下载</div>
-                <OrgTree
-                data={this.state.data}
-                horizontal={horizontal}
-                collapsable={collapsable}
-                expandAll={expandAll}
-            /></div>)
+                <div style = {{position:'relative'}}>
+                <div style = {{position:'absolute',display:'flex',alignItems:'center',justifyContent:'center',top:'-50px',right:'20px',width:'100px',height:'30px',cursor:'pointer',zIndex:'1000',color:'#fff',backgroundColor:'#1890ff'}} onClick = {() => this.props.goDownload()}>去下载</div>
+                    <OrgTree
+                        data = {this.state.data}
+                        horizontal = {horizontal}
+                        collapsable = {collapsable}
+                        expandAll = {expandAll}
+                    />
+                </div>)
         }else{
-            return (<div style={{margin:'20px'}}>没有当前时间数据...</div>)
+            return (<div style = {{margin:'20px'}}>没有当前时间数据...</div>)
         }
         
     }  

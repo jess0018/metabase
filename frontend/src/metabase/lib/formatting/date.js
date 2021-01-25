@@ -5,18 +5,19 @@ import type { DateSeparator } from "metabase/lib/formatting";
 import type { DatetimeUnit } from "metabase-types/types/Query";
 
 export type DateStyle =
-  | "YYYY/M/D"
-  | "YYYY/MM/DD"
-  | "YYYY年MM月DD日"
-  | "YYYYMMDD"
-  | "MM/DD"
-  | "MMDD"
-  | "MM-DD"
-  | "M月"
-  | "MM月DD日"
-  | "DD";
+| "YYYY/M/D"
+| "YYYY/MM/DD"
+| "YYYY年MM月DD日"
+| "YYYYMMDD"
+| "MM/DD"
+| "MMDD"
+| "MM-DD"
+| "M月"
+| "MM月DD日"
+| "DD";
 
-export type TimeStyle = "h:mm A" | "k:mm";
+
+export type TimeStyle = "h:mm A" | "k:mm" | "h A";
 
 export type MomentFormat = string; // moment.js format strings
 export type DateFormat = MomentFormat;
@@ -59,7 +60,7 @@ const DATE_STYLE_TO_FORMAT: {
     month: "MM/DD",
   },
   "MMDD": {
-    month: "MMDD",
+    month: "MMDD", 
   },
   "MM-DD": {
     month: "MM-DD",
