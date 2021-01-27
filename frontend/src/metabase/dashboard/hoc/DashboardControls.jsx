@@ -164,9 +164,6 @@ export default (ComposedComponent: ReactClass<any>) =>
           if (screenfull.enabled && browserFullscreen) {
             if (isFullscreen) {
               try {
-                // Some browsers block this unless it was initiated by user
-                // interaction. If it fails, we catch the error since we still
-                // want to set the "isFullscreen" option in state.
                 await screenfull.request();
               } catch (e) {
                 console.warn(`Couldn't enable browser fullscreen: ${e}`);

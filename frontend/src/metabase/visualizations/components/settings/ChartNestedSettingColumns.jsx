@@ -4,6 +4,8 @@ import React from "react";
 
 import ColumnItem from "./ColumnItem";
 
+import Icon from "metabase/components/Icon";
+
 const displayNameForColumn = column =>
   column ? column.display_name || column.name : "[Unknown]";
 
@@ -64,6 +66,23 @@ class ColumnWidgets extends React.Component {
   }
 
   render() {
-    return <div>{this.props.objectSettingsWidgets}</div>;
+    // return <div>{this.props.objectSettingsWidgets}</div>;
+    return (
+      <div>
+        {/* only show the back button if we have more than one column */}
+        {this.props.objects.length > 1 && (
+          <div
+            className="flex align-center mb2 cursor-pointer"
+            onClick={() => this.props.onChangeEditingObject()}
+          >
+            <Icon name="chevronleft" className="text-light" />
+            <span className="ml1 text-bold text-brand">
+              {displayNameForColumn(this.props.object)}
+            </span>
+          </div>
+        )}
+        {this.props.objectSettingsWidgets}
+      </div>
+    );
   }
 }

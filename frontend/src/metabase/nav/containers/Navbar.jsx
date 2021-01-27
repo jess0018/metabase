@@ -244,6 +244,26 @@ export default class Navbar extends Component {
               </h4>
             </Link>
           )}
+          {IsPc && hasDataAccess && (
+            <Link
+              target="_blank"
+              mr={1}
+              to={Urls.managerQuestion()}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Management`}
+            >
+              {/* <Icon name="insight" size={18} />  */}
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                管理图表
+              </h4>
+            </Link>
+          )}
           {/* {IsPc && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
@@ -287,6 +307,25 @@ export default class Navbar extends Component {
           )}
           {IsPc && hasDataAccess && (
             <Link
+              target="_blank"
+              mr={1}
+              to={`https://schoolpal.yuque.com/docs/share/75a8937c-94d8-4410-9852-091002d47569#NhBs`}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Indicator—Definition`}
+            >
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                指标管理
+              </h4>
+            </Link>
+          )}
+          {/* {IsPc && hasDataAccess && (
+            <Link
               mr={[1, 1]}
               to="browse"
               p={1}
@@ -303,7 +342,7 @@ export default class Navbar extends Component {
               }</h4>
             </Link>
           )}
-          {/* {IsPc && hasNativeWrite && hasDataAccess && (
+          {IsPc && hasNativeWrite && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -317,26 +356,6 @@ export default class Navbar extends Component {
               </Link>
             </IconWrapper>
           )} */}
-          {IsPc && hasDataAccess && (
-            <Link
-            target="_blank"
-              mr={1}
-              to={Urls.managerQuestion()}
-              p={1}
-              hover={{
-                backgroundColor: darken(color("brand")),
-              }}
-              className="flex align-center rounded transition-background"
-              data-metabase-event={`NavBar;Management`}
-            >
-              {/* <Icon name="insight" size={18} />  */}
-              <h4 
-                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
-                className="hide sm-show ml1 text-nowrap">
-                管理图表
-              </h4>
-            </Link>
-          )}
           <ProfileLink {...this.props} />
         </Flex>
         {this.renderModal()}

@@ -69,11 +69,12 @@ export default class LeftMenu extends Component {
         const {currentUser}=this.props
         const {menuItems}=this.state
         
+
         const renderItem = (items) => {
             if(!items || items.length<=0){
                 return;
             }
-            return items.map(item=>{
+            return  items.map(item=>{
                 if(item.model==='collection' || item.model==='dashboard'){
                     if(item.model==='collection'){
                         return (<SubMenu
@@ -87,28 +88,17 @@ export default class LeftMenu extends Component {
                                 >
                                 { renderItem(item.items)} 
                                 </SubMenu>)
-                    } else{
-                        return (
-                        <Menu.Item key={item.model + "-" + item.id}>
-                          <Link to={`/view/${item.model}/${item.id}`} style={{display:'flex',alignItems:'center'}}>
-                            <Icon name="dashboard" mr={1}/>
-                            {currentUser.personal_collection_id === item.id ? "我的" : item.name}
-                          </Link>
-                        </Menu.Item>
-                        )
+                    }else{
+                        return (<Menu.Item key={item.model+"-"+item.id}>
+                        <Link to={`/view/${item.model}/${item.id}`} style={{display:'flex',alignItems:'center'}}><Icon name="dashboard" mr={1}/>{currentUser.personal_collection_id === item.id?"我的":item.name}</Link>
+                        </Menu.Item>)
                     }
                 }
-            });
+            })
         }
 
-        menuItems.push(
-            <Menu.Item key={"indicator_definition"}>
-                <Link to={`https://schoolpal.yuque.com/docs/share/75a8937c-94d8-4410-9852-091002d47569#NhBs`} target="_blank" style={{display:'flex',alignItems:'center'}}>
-                <Icon name="dashboard" mr={1}/>
-                指标管理
-                </Link>
-            </Menu.Item>);
-    
+        
+
        const getOpenKeys =(items, id) =>{
             const list=[]
             const buildParentList=(arr)=>{
@@ -151,8 +141,7 @@ export default class LeftMenu extends Component {
             mode="inline"
             >
                 {renderItem(menuItems)}
-            </Menu>
-            );
+            </Menu>);
     }
     
 }

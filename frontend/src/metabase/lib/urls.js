@@ -6,7 +6,7 @@ import Question from "metabase-lib/lib/Question";
 
 export const activity = "/activity";
 
-export const exportFormats = ["csv", "xlsx", "json"];
+export const exportFormats = ["xlsx", "json"];
 
 export const newQuestionFlow = () => "/question/new";
 
