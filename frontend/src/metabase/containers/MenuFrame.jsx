@@ -1,6 +1,8 @@
 
 import React, { Component } from "react";
-import LeftMenu from "metabase/containers/LeftMenu.jsx";
+import LeftMenu from "metabase/containers/LeftMenu";
+import Icon from "metabase/components/Icon";
+import { Link } from "react-router";
 
 export default class App extends Component {
     render() {
