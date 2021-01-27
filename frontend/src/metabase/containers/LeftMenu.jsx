@@ -4,7 +4,7 @@ import { GET } from "metabase/lib/api";
 import { Link } from "react-router";
 import  Menu from 'antd/es/menu';
 //import Icon  from 'antd/es/icon';
-import Icon from "metabase/components/Icon";
+import Icon from "metabase/components/Icon.jsx";
 import { connect } from "react-redux";
 import "antd/es/menu/style/css";
 //import "antd/es/icon/style/css";
@@ -90,7 +90,7 @@ export default class LeftMenu extends Component {
                                 </SubMenu>)
                     }else{
                         return (<Menu.Item key={item.model+"-"+item.id}>
-                        <Link to={`/view/${item.model}/${item.id}`} style={{display:'flex',alignItems:'center'}}><Icon name="dashboard" mr={1}/>{currentUser.personal_collection_id === item.id?"我的":item.name}</Link>
+                        <Link to={`/view/${item.model}/${item.id}`} style={{display:'flex',alignItems:'center'}}><Icon name="dashboard" mr={1}/>{currentUser.personal_collection_id==item.id?"我的":item.name}</Link>
                         </Menu.Item>)
                     }
                 }
@@ -115,7 +115,7 @@ export default class LeftMenu extends Component {
 
             const parentIds=[]
             function findParent(idx){
-                if (list[idx] !== undefined){
+                if (list[idx] != undefined){
                     const pid = list[idx]
                     parentIds.push(pid)
                     console.log(pid)

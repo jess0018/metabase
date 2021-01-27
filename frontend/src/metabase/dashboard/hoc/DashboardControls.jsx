@@ -213,6 +213,13 @@ export default (ComposedComponent: ReactClass<any>) =>
           } else if (!show && nav) {
             nav.classList.add("hide");
           }
+          
+          const menu =window.document.querySelector('.ant-menu')
+          if (show && menu) {
+            menu.classList.remove("hide");
+          } else if (!show && menu) {
+            menu.classList.add("hide");
+          }
         }
       }
 
