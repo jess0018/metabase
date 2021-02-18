@@ -808,7 +808,16 @@
 (deftest group-by-quarter-of-year-test
   (mt/test-drivers (mt/normal-drivers)
     (is (= [[2 200]]
-           (sad-toucan-incidents-with-bucketing :quarter-of-year :pacific)))))
+           (sad-toucan-incidents-with-bucketing :quarter-of-year :pacific)))
+
+    (is (= [[1 200]
+            [2 284]
+            [3 278]
+            [4 238]]
+           (mt/formatted-rows [int int]
+             (mt/run-mbql-query checkins
+               {:aggregation [[:count]]
+                :breakout    [[:datetime-field $date :quarter-of-year]]}))))))
 
 (deftest group-by-year-test
   (mt/test-drivers (mt/normal-drivers)
@@ -821,7 +830,19 @@
                :else
                "2015-01-01T00:00:00Z")
              200]]
-           (sad-toucan-incidents-with-bucketing :year :pacific)))))
+           (sad-toucan-incidents-with-bucketing :year :pacific)))
+
+    (is (= (if (= :sqlite driver/*driver*)
+             [["2013-01-01" 235]
+              ["2014-01-01" 498]
+              ["2015-01-01" 267]]
+             [["2013-01-01T00:00:00Z" 235]
+              ["2014-01-01T00:00:00Z" 498]
+              ["2015-01-01T00:00:00Z" 267]])
+           (mt/formatted-rows [str int]
+             (mt/run-mbql-query checkins
+               {:aggregation [[:count]]
+                :breakout    [[:datetime-field $date :year]]}))))))
 
 ;; RELATIVE DATES
 (p.types/deftype+ ^:private TimestampDatasetDef [intervalSeconds]
@@ -843,8 +864,11 @@
               ;; generating Java classes here so they'll be in the DB's native timezone. Some DBs refuse to use
               ;; the same timezone we're running the tests from *cough* SQL Server *cough*
               [(u/prog1 (if (and (isa? driver/hierarchy driver/*driver* :sql)
-                                 ;; BigQuery doesn't insert rows using SQL statements
-                                 (not= driver/*driver* :bigquery))
+                                 ;; BigQuery/Vertica don't insert rows using SQL statements
+                                 ;;
+                                 ;; TODO -- make 'insert-rows-using-statements?` a multimethod so we don't need to
+                                 ;; hardcode the whitelist here.
+                                 (not (#{:vertica :bigquery} driver/*driver*)))
                           (sql.qp/add-interval-honeysql-form driver/*driver*
                                                              (sql.qp/current-datetime-honeysql-form driver/*driver*)
                                                              (* i interval-seconds)
@@ -865,7 +889,7 @@
 
 (def ^:private ^:dynamic *recreate-db-if-stale?* true)
 
-(defn- count-of-grouping [^TimestampDatasetDef dataset, field-grouping & relative-datetime-args]
+(defn- count-of-grouping [^TimestampDatasetDef dataset field-grouping & relative-datetime-args]
   (-> (mt/dataset dataset
         ;; DB has values in the range of now() - (interval-seconds * 15) and now() + (interval-seconds * 15). So if it
         ;; was created more than (interval-seconds * 5) seconds ago, delete the Database and recreate it to make sure
@@ -877,12 +901,13 @@
             (printf "DB for %s is stale! Deleteing and running test again\n" dataset)
             (db/delete! Database :id (mt/id))
             (apply count-of-grouping dataset field-grouping relative-datetime-args))
-          (-> (mt/run-mbql-query checkins
-                {:aggregation [[:count]]
-                 :filter      [:=
-                               [:datetime-field $timestamp field-grouping]
-                               (cons :relative-datetime relative-datetime-args)]})
-              mt/first-row first int)))))
+          (let [results (mt/run-mbql-query checkins
+                          {:aggregation [[:count]]
+                           :filter      [:=
+                                         [:datetime-field $timestamp field-grouping]
+                                         (cons :relative-datetime relative-datetime-args)]})]
+            (or (some-> results mt/first-row first int)
+                results))))))
 
 ;; HACK - Don't run these tests against Snowflake/etc. because the databases need to be loaded every time the tests
 ;;        are ran and loading data into these DBs is mind-bogglingly slow.
