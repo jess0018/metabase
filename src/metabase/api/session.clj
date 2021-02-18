@@ -98,14 +98,12 @@
     (when (pass/verify-password password (:password_salt user) (:password user))
       (create-session! :password user))))
 
-(s/defn ^:private dd-login :- (s/maybe UUID)
-   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
-   [username password]
-   (when-let [user (db/select-one [User :id :password_salt :password :last_login], :%lower.email (u/lower-case-en username), :is_active true)]
-      (log/info password)
-      (log/info (:password_salt user))
-      (when (= password "SvyRhPh8ABsl2Hw7")
-        (create-session! :password user))))
+(s/defn ^:private dd-login :- (s/maybe {:id UUID, s/Keyword s/Any})
+  "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
+  [username password]
+  (when-let [user (db/select-one [User :id :password_salt :password :last_login], :%lower.email (u/lower-case-en username), :is_active true)]
+    (when (= password (config/config-str :mb-dd-qrcode-authpwd))
+      (create-session! :password user))))
 
 (def ^:private throttling-disabled? (config/config-bool :mb-disable-session-throttle))
 

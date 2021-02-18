@@ -53,11 +53,11 @@ export default class MyOrgTree extends Component {
                 
                 if(dYear === nowYear && dMonth === nowMonth && nowDay !=1 ){ 
                     //当月 获取前一天数据
-                    result_date = this.dateFormat("YYYY-mm-dd HH:MM", new Date(now.getTime() - 24*60*60*1000));
+                    result_date = this.dateFormat("YYYY-mm-dd", new Date(now.getTime() - 24*60*60*1000));
                 }
                 else{
                     //其他月 前一月最后一天
-                    result_date = this.dateFormat("YYYY-mm-dd HH:MM", monthEndDate);
+                    result_date = this.dateFormat("YYYY-mm-dd", monthEndDate);
                 }
 
                 console.info('result_date',result_date);
@@ -91,7 +91,7 @@ export default class MyOrgTree extends Component {
          const itemArr = [];
          for(let i = 0; i < rows.length; i++){
              const node = rows[i];
-             if(node[1] === parentId){
+             if(node[1] == parentId){
                  const id = node[2];
                  const label = node[3];
                  let dget = node[4];//目标值

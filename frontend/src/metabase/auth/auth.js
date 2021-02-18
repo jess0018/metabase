@@ -84,7 +84,7 @@ export const logout = createThunkAction(LOGOUT, function() {
     }else if(ENV==='dev'){
       window.location.href="http://127.0.0.1:5010"
     }else{
-      dispatch(push("/auth/login"));
+      
     }
 
     // refresh to ensure all application state is cleared
