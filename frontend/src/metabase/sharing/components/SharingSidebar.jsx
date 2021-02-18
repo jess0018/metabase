@@ -28,7 +28,11 @@ import User from "metabase/entities/users";
 
 import { connect } from "react-redux";
 
-import { cleanPulse, createChannel, pulseIsValid } from "metabase/lib/pulse";
+import {
+  cleanPulse,
+  createChannel,
+  dashboardPulseIsValid,
+} from "metabase/lib/pulse";
 import MetabaseSettings from "metabase/lib/settings";
 
 import {
@@ -261,7 +265,7 @@ class SharingSidebar extends React.Component {
     await this.props.updateEditingPulse(cleanedPulse);
 
     // The order below matters; it hides the "Done" button faster and prevents two pulses from being made if it's double-clicked
-    this.setState({ editingMode: "list-pulses" });
+    this.setState({ editingMode: "list-pulses", returnMode: [] });
     await this.props.saveEditingPulse();
   };
 
@@ -509,7 +513,7 @@ class SharingSidebar extends React.Component {
         <ExternalLink
           className="link"
           target="_blank"
-          href={MetabaseSettings.docsUrl("users-guide/10-pulses")}
+          href={MetabaseSettings.docsUrl("users-guide/dashboard-subscriptions")}
         >
           Learn more
         </ExternalLink>
@@ -604,7 +608,7 @@ class SharingSidebar extends React.Component {
           onClose={this.handleSave}
           onCancel={this.onCancel}
           className="text-dark"
-          closeIsDisabled={!pulseIsValid(pulse, formInput.channels)}
+          closeIsDisabled={!dashboardPulseIsValid(pulse, formInput.channels)}
         >
           <div className="pt4 px4 flex align-center">
             <Icon name="mail" className="mr1" size={21} />
@@ -705,6 +709,7 @@ class SharingSidebar extends React.Component {
           onClose={this.handleSave}
           onCancel={this.onCancel}
           className="text-dark"
+          closeIsDisabled={!dashboardPulseIsValid(pulse, formInput.channels)}
         >
           <div className="pt4 flex align-center px4 mb3">
             <Icon name="slack" className="mr1" size={21} />

@@ -141,6 +141,7 @@ describe("scenarios > admin > datamodel > segments", () => {
       cy.contains(SEGMENT_NAME)
         .parent()
         .parent()
+        .parent()
         .find(".Icon-ellipsis")
         .click();
       cy.contains("Edit Segment").click();
@@ -163,7 +164,7 @@ describe("scenarios > admin > datamodel > segments", () => {
         .click();
 
       // confirm that the preview updated
-      cy.contains("18703 rows");
+      cy.contains("18758 rows");
 
       // update name and description, set a revision note, and save the update
       cy.get('[name="name"]')
@@ -181,6 +182,7 @@ describe("scenarios > admin > datamodel > segments", () => {
 
       // clean up
       cy.contains("Orders > 10")
+        .parent()
         .parent()
         .parent()
         .find(".Icon-ellipsis")
