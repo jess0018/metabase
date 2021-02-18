@@ -72,8 +72,10 @@
              existing-engine          :engine
              existing-name            :name} (db/select-one [Database
                                                              :metadata_sync_schedule
-                                                             :cache_field_values_schedule]
-                                               :id (u/the-id database))
+                                                             :cache_field_values_schedule
+                                                             :engine
+                                                             :name]
+                                                            :id (u/the-id database))
             ;; if one of the schedules wasn't passed continue using the old one
             new-metadata-schedule            (or new-metadata-schedule old-metadata-schedule)
             new-fieldvalues-schedule         (or new-fieldvalues-schedule old-fieldvalues-schedule)]
@@ -138,7 +140,7 @@
   [{:keys [id]}]
   (let [table-ids (db/select-ids 'Table, :db_id id, :active true)]
     (when (seq table-ids)
-      (db/select 'Field, :table_id [:in table-ids], :special_type (mdb.u/isa :type/PK)))))
+      (db/select 'Field, :table_id [:in table-ids], :semantic_type (mdb.u/isa :type/PK)))))
 
 (defn schema-exists?
   "Does `database` have any tables with `schema`?"

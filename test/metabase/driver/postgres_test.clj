@@ -58,8 +58,7 @@
             :OpenSourceSubProtocolOverride true
             :user                          "camsaul"
             :ssl                           true
-            :sslmode                       "require"
-            :sslfactory                    "org.postgresql.ssl.NonValidatingFactory"}
+            :sslmode                       "require"}
            (sql-jdbc.conn/connection-details->spec :postgres
              {:ssl    true
               :host   "localhost"
@@ -76,7 +75,30 @@
              {:host               "localhost"
               :port               "5432"
               :dbname             "cool"
-              :additional-options "prepareThreshold=0"})))))
+              :additional-options "prepareThreshold=0"}))))
+  (testing "user-specified SSL options should always take precendence over defaults"
+    (is (= {:classname                     "org.postgresql.Driver"
+            :subprotocol                   "postgresql"
+            :subname                       "//localhost:5432/bird_sightings"
+            :OpenSourceSubProtocolOverride true
+            :user                          "camsaul"
+            :ssl                           true
+            :sslmode                       "verify-ca"
+            :sslcert                       "my-cert"
+            :sslkey                        "my-key"
+            :sslfactory                    "myfactoryoverride"
+            :sslrootcert                   "myrootcert"}
+           (sql-jdbc.conn/connection-details->spec :postgres
+             {:ssl         true
+              :host        "localhost"
+              :port        5432
+              :dbname      "bird_sightings"
+              :user        "camsaul"
+              :sslmode     "verify-ca"
+              :sslcert     "my-cert"
+              :sslkey      "my-key"
+              :sslfactory  "myfactoryoverride"
+              :sslrootcert "myrootcert"})))))
 
 
 ;;; ------------------------------------------- Tests for sync edge cases --------------------------------------------
@@ -223,7 +245,7 @@
                      [{:field-name "address", :base-type {:native "json"}}]
                      [[(hsql/raw "to_json('{\"street\": \"431 Natoma\", \"city\": \"San Francisco\", \"state\": \"CA\", \"zip\": 94103}'::text)")]]])
         (is (= :type/SerializedJSON
-               (db/select-one-field :special_type Field, :id (mt/id :venues :address))))))))
+               (db/select-one-field :semantic_type Field, :id (mt/id :venues :address))))))))
 
 (mt/defdataset ^:private with-uuid
   [["users"

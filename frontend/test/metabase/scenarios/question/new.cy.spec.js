@@ -114,13 +114,13 @@ describe("scenarios > question > new", () => {
     });
 
     it.skip("should correctly choose between 'Object Detail' and 'Table (metabase#13717)", () => {
-      // set ID to `No special type`
+      // set ID to `No semantic type`
       cy.request("PUT", `/api/field/${ORDERS.ID}`, {
-        special_type: null,
+        semantic_type: null,
       });
       // set Quantity to `Entity Key`
       cy.request("PUT", `/api/field/${ORDERS.QUANTITY}`, {
-        special_type: "type/PK",
+        semantic_type: "type/PK",
       });
 
       openOrdersTable();
@@ -141,7 +141,7 @@ describe("scenarios > question > new", () => {
       cy.findByText("Fantastic Wool Shirt"); // order ID#3 with the same quantity
     });
 
-    it.skip("should display date granularity on Summarize when opened from saved question (metabase#11439)", () => {
+    it("should display date granularity on Summarize when opened from saved question (metabase#11439)", () => {
       // save "Orders" as question
       cy.request("POST", "/api/card", {
         name: "11439",
@@ -233,7 +233,7 @@ describe("scenarios > question > new", () => {
         cy.findByText("Done").click();
       });
       cy.findByText("Visualize").click();
-      cy.findByText("604.96");
+      cy.findByText("318.7");
     });
 
     it.skip("should keep manually entered parenthesis intact (metabase#13306)", () => {
@@ -270,7 +270,7 @@ describe("scenarios > question > new", () => {
       cy.log(
         "**The point of failure for ANY non-numeric value reported in v0.36.4**",
       );
-      // the default type for "Reviewer" is "No special type"
+      // the default type for "Reviewer" is "No semantic type"
       cy.findByText("Fields")
         .parent()
         .contains("Reviewer");

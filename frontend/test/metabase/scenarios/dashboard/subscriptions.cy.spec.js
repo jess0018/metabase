@@ -34,7 +34,7 @@ describe("scenarios > dashboard > subscriptions", () => {
     });
   });
 
-  describe("with email and slack set up", () => {
+  describe("with email set up", () => {
     beforeEach(() => {
       setupDummySMTP();
     });
@@ -75,6 +75,71 @@ describe("scenarios > dashboard > subscriptions", () => {
         .within(() => {
           cy.findByRole("checkbox").should("have.attr", "aria-checked", "true");
         });
+    });
+
+    it("should not display 'null' day of the week (metabase#14405)", () => {
+      assignRecipient();
+      cy.findByText("To:").click();
+      cy.get(".AdminSelect")
+        .contains("Daily")
+        .click();
+      cy.findByText("Monthly").click();
+      cy.get(".AdminSelect")
+        .contains("First")
+        .click();
+      cy.findByText("15th (Midpoint)").click();
+      cy.get(".AdminSelect")
+        .contains("15th (Midpoint)")
+        .click();
+      cy.findByText("First").click();
+      clickButton("Done");
+      // Implicit assertion (word mustn't contain string "null")
+      cy.findByText(/^Emailed monthly on the first (?!null)/);
+    });
+  });
+
+  describe("with Slack set up", () => {
+    beforeEach(() => {
+      // Stubbing the response in advance (Cypress will intercept it when we navigate to "Dashboard subscriptions")
+      cy.server();
+      cy.route("GET", "/api/pulse/form_input", {
+        channels: {
+          email: {
+            type: "email",
+            name: "Email",
+            allows_recipients: false,
+            recipients: ["user", "email"],
+            schedules: ["daily", "weekly", "monthly"],
+            configured: false,
+          },
+          slack: {
+            type: "slack",
+            name: "Slack",
+            allows_recipients: true,
+            schedules: ["hourly", "daily", "weekly", "monthly"],
+            fields: [
+              {
+                name: "channel",
+                type: "select",
+                displayName: "Post to",
+                options: ["#work", "#play"],
+                required: true,
+              },
+            ],
+            configured: true,
+          },
+        },
+      });
+      openDashboardSubscriptions();
+    });
+
+    it("should not enable 'Done' button before channel is selected (metabase#14494)", () => {
+      cy.findByText("Send it to Slack").click();
+      cy.findByText("Send this dashboard to Slack");
+      cy.findAllByRole("button", { name: "Done" }).should("be.disabled");
+      cy.findByText("Pick a user or channel...").click();
+      cy.findByText("#work").click();
+      cy.findAllByRole("button", { name: "Done" }).should("not.be.disabled");
     });
   });
 });

@@ -53,6 +53,15 @@ export default class ProfileLink extends Component {
         link: Urls.accountSettings(),
         event: `Navbar;Profile Dropdown;Edit Profile`,
       },
+      ...(MetabaseSettings.isHosted() &&
+        admin && [
+          {
+            title: t`Manage Metabase Cloud`,
+            link: "https://store.metabase.com/login",
+            event: `Navbar;Profile Dropdown;ManageHosting ${tag}`,
+            externalLink: true,
+          },
+        ]),
       ...(admin && [
         {
           title: adminContext ? t`Exit admin` : t`Admin`,
@@ -93,6 +102,7 @@ export default class ProfileLink extends Component {
 
   render() {
     const { modalOpen } = this.state;
+    const adminContext = this.props.context === "admin";
     const { tag, date, ...versionExtra } = MetabaseSettings.get("version");
     // don't show trademark if application name is whitelabeled
     const showTrademark = t`Metabase` === "Metabase";
@@ -104,7 +114,9 @@ export default class ProfileLink extends Component {
           triggerIcon="gear"
           triggerProps={{
             hover: {
-              backgroundColor: darken(color("brand")),
+              backgroundColor: adminContext
+                ? darken(color("accent7"))
+                : darken(color("brand")),
               color: "white",
             },
           }}

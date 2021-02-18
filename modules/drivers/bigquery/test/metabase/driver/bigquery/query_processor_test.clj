@@ -132,18 +132,18 @@
 
 (deftest join-alias-test
   (mt/test-driver :bigquery
-    (is (= (str "SELECT `categories__via__category_id`.`name` AS `name`,"
+    (is (= (str "SELECT `categories__via__category_id`.`name` AS `categories__via__category_id__name`,"
                 " count(*) AS `count` "
                 "FROM `v3_test_data.venues` "
                 "LEFT JOIN `v3_test_data.categories` `categories__via__category_id`"
                 " ON `v3_test_data.venues`.`category_id` = `categories__via__category_id`.`id` "
-                "GROUP BY `name` "
-                "ORDER BY `name` ASC")
+                "GROUP BY `categories__via__category_id__name` "
+                "ORDER BY `categories__via__category_id__name` ASC")
            ;; normally for test purposes BigQuery doesn't support foreign keys so override the function that checks
            ;; that and make it return `true` so this test proceeds as expected
            (with-redefs [driver/supports? (constantly true)]
              (mt/with-temp-vals-in-db Field (mt/id :venues :category_id) {:fk_target_field_id (mt/id :categories :id)
-                                                                            :special_type       "type/FK"}
+                                                                          :semantic_type      "type/FK"}
                (let [results (mt/run-mbql-query venues
                                {:aggregation [:count]
                                 :breakout    [$category_id->categories.name]})]
