@@ -39,6 +39,14 @@ export default class ProfileLink extends Component {
     const admin = this.props.user.is_superuser;
     const adminContext = this.props.context === "admin";
     return [
+      ...(admin && [
+        {
+          title: t`Browse data`,
+          icon: null,
+          link: "/browse",
+          event: `Navbar;Browse data`,
+        },
+      ]),
       {
         title: t`Account settings`,
         icon: null,

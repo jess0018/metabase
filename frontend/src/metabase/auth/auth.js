@@ -14,6 +14,8 @@ import { refreshCurrentUser } from "metabase/redux/user";
 
 import { SessionApi } from "metabase/services";
 
+import ENV from "metabase/config.js"
+
 // login
 export const LOGIN = "metabase/auth/LOGIN";
 export const login = createThunkAction(
@@ -75,7 +77,15 @@ export const logout = createThunkAction(LOGOUT, function() {
 
     MetabaseAnalytics.trackEvent("Auth", "Logout");
 
-    dispatch(push("/auth/login"));
+    if(ENV==='production'){
+      window.location.href="https://stp.xiaobaoonline.com"
+    }else if(ENV==='test'){
+      window.location.href="https://test-stp.xiaobao100.com"
+    }else if(ENV==='dev'){
+      window.location.href="http://127.0.0.1:5010"
+    }else{
+      dispatch(push("/auth/login"));
+    }
 
     // refresh to ensure all application state is cleared
     window.location.reload();

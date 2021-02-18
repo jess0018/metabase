@@ -32,6 +32,8 @@ import {
 } from "metabase/new_query/selectors";
 import Database from "metabase/entities/databases";
 
+const IsPc=!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
@@ -194,7 +196,7 @@ export default class Navbar extends Component {
         align="center"
         style={{ backgroundColor: color("nav") }}
         py={1}
-        pr={2}
+        pr={1}
       >
         <Flex style={{ minWidth: 64 }} align="center" justify="center">
           <Link
@@ -210,12 +212,12 @@ export default class Navbar extends Component {
               align="center"
               justify="center"
             >
-              <LogoIcon dark height={32} />
+              <LogoIcon dark width={100} height={25} />
             </Flex>
           </Link>
         </Flex>
-        <Flex className="flex-full z1" pr={2} align="center">
-          <Box w={1} style={{ maxWidth: 500 }}>
+        <Flex className="flex-full z1" pl={0} pr={0} align="center">
+          <Box w={1} pr={0} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
@@ -223,7 +225,7 @@ export default class Navbar extends Component {
           </Box>
         </Flex>
         <Flex ml="auto" align="center" pl={[1, 2]} className="relative z2">
-          {hasDataAccess && (
+          {IsPc && hasDataAccess && (
             <Link
               mr={[1, 2]}
               to={Urls.newQuestionFlow()}
@@ -235,10 +237,34 @@ export default class Navbar extends Component {
               data-metabase-event={`NavBar;New Question`}
             >
               <Icon name="insight" size={18} />
-              <h4 className="hide sm-show ml1 text-nowrap">{t`Ask a question`}</h4>
+              <h4 
+                style={{color: '#fff', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                {t`Ask a question`}
+              </h4>
             </Link>
           )}
-          {hasDataAccess && (
+          {IsPc && hasDataAccess && (
+            <Link
+              target="_blank"
+              mr={1}
+              to={Urls.managerQuestion()}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Management`}
+            >
+              {/* <Icon name="insight" size={18} />  */}
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                管理图表
+              </h4>
+            </Link>
+          )}
+          {/* {IsPc && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -256,7 +282,8 @@ export default class Navbar extends Component {
                 />
               </Link>
             </IconWrapper>
-          )}
+          )} */}
+          {IsPc && (
           <EntityMenu
             tooltip={t`Create`}
             className="hide sm-show mr1"
@@ -277,7 +304,45 @@ export default class Navbar extends Component {
               },
             ]}
           />
-          {hasNativeWrite && (
+          )}
+          {IsPc && hasDataAccess && (
+            <Link
+              target="_blank"
+              mr={1}
+              to={`https://schoolpal.yuque.com/docs/share/75a8937c-94d8-4410-9852-091002d47569#NhBs`}
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Indicator—Definition`}
+            >
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap">
+                指标管理
+              </h4>
+            </Link>
+          )}
+          {/* {IsPc && hasDataAccess && (
+            <Link
+              mr={[1, 1]}
+              to="browse"
+              p={1}
+              hover={{
+                backgroundColor: darken(color("brand")),
+              }}
+              className="flex align-center rounded transition-background"
+              data-metabase-event={`NavBar;Data Browse`}
+            >
+              <h4 
+                style={{color: '#fff', marginLeft:'0px', fontWeight: 700}} 
+                className="hide sm-show ml1 text-nowrap"> 
+                {t`Browse data`
+              }</h4>
+            </Link>
+          )}
+          {IsPc && hasNativeWrite && hasDataAccess && (
             <IconWrapper
               className="relative hide sm-show mr1 overflow-hidden"
               hover={NavHover}
@@ -290,7 +355,7 @@ export default class Navbar extends Component {
                 <Icon size={18} p={"11px"} name="sql" tooltip={t`Write SQL`} />
               </Link>
             </IconWrapper>
-          )}
+          )} */}
           <ProfileLink {...this.props} />
         </Flex>
         {this.renderModal()}

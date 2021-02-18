@@ -86,11 +86,14 @@ import DashboardCopyModal from "metabase/dashboard/components/DashboardCopyModal
 import DashboardDetailsModal from "metabase/dashboard/components/DashboardDetailsModal";
 import { ModalRoute } from "metabase/hoc/ModalRoute";
 
-import CollectionLanding from "metabase/components/CollectionLanding";
+import CollectionLanding from "metabase/components/CollectionLanding_xb";
 import Overworld from "metabase/containers/Overworld";
 
 import ArchiveApp from "metabase/home/containers/ArchiveApp";
 import SearchApp from "metabase/home/containers/SearchApp";
+
+import DashboardHome from "metabase/dashboard/containers/DashboardHome";
+import MenuFrame from "metabase/containers/MenuFrame";
 
 const MetabaseIsSetup = UserAuthWrapper({
   predicate: authData => !authData.hasSetupToken,
@@ -137,6 +140,8 @@ const IsNotAuthenticated = MetabaseIsSetup(
   UserIsNotAuthenticated(({ children }) => children),
 );
 
+const IsPc=!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
 export const getRoutes = store => (
   <Route title={t`Metabase`} component={App}>
     {/* SETUP */}
@@ -179,6 +184,49 @@ export const getRoutes = store => (
       {/* MAIN */}
       <Route component={IsAuthenticated}>
         {/* The global all hands rotues, things in here are for all the folks */}
+
+        <Route path="/manager" component={Overworld} />
+
+        {
+            IsPc ?  <Redirect from="/" to="/view"/> : <Redirect from="/" to="/apphome"/>
+        }
+
+        <Route path="/apphome" component={IsPc?MenuFrame:null}>
+            <IndexRoute component={DashboardHome}/>
+            <Route path="collection/:collectionId" component={CollectionLanding}>
+                <ModalRoute path="edit" modal={CollectionEdit} />
+                <ModalRoute path="archive" modal={ArchiveCollectionModal} />
+                <ModalRoute path="new_collection" modal={CollectionCreate} />
+                <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
+                <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
+            </Route>
+            <Route path="dashboard/:dashboardId" component={DashboardApp}>
+                <ModalRoute path="history" modal={DashboardHistoryModal} />
+                <ModalRoute path="move" modal={DashboardMoveModal} />
+                <ModalRoute path="copy" modal={DashboardCopyModal} />
+                <ModalRoute path="details" modal={DashboardDetailsModal} />
+                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
+            </Route>
+        </Route>
+
+        <Route path="/view" component={IsPc?MenuFrame:null}>
+            <IndexRoute component={DashboardHome}/>
+            <Route path="collection/:collectionId" component={CollectionLanding}>
+                <ModalRoute path="edit" modal={CollectionEdit} />
+                <ModalRoute path="archive" modal={ArchiveCollectionModal} />
+                <ModalRoute path="new_collection" modal={CollectionCreate} />
+                <ModalRoute path="new_dashboard" modal={CreateDashboardModal} />
+                <ModalRoute path="permissions" modal={CollectionPermissionsModal} />
+            </Route>
+            <Route path="dashboard/:dashboardId" component={DashboardApp}>
+                <ModalRoute path="history" modal={DashboardHistoryModal} />
+                <ModalRoute path="move" modal={DashboardMoveModal} />
+                <ModalRoute path="copy" modal={DashboardCopyModal} />
+                <ModalRoute path="details" modal={DashboardDetailsModal} />
+                <ModalRoute path="archive" modal={ArchiveDashboardModal} />
+            </Route>
+        </Route>
+
         <Route
           path="/"
           component={Overworld}
@@ -210,11 +258,7 @@ export const getRoutes = store => (
 
         <Route path="activity" component={HomepageApp} />
 
-        <Route
-          path="dashboard/:dashboardId"
-          title={t`Dashboard`}
-          component={DashboardApp}
-        >
+        <Route path="dashboard/:dashboardId" component={DashboardApp}> {/* title={t`Dashboard`} */}
           <ModalRoute path="history" modal={DashboardHistoryModal} />
           <ModalRoute path="move" modal={DashboardMoveModal} />
           <ModalRoute path="copy" modal={DashboardCopyModal} />

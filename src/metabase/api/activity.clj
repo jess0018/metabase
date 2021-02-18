@@ -69,7 +69,7 @@
   (when (contains? #{"card" "dashboard"} model)
     (db/select-one
         (case model
-          "card"      [Card      :id :name :collection_id :description :display :dataset_query]
+          "card"      [Card      :id :name :collection_id :description :display :dataset_query :skip_link_title :skip_link]
           "dashboard" [Dashboard :id :name :collection_id :description])
         :id model_id)))
 

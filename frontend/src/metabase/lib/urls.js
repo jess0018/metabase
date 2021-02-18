@@ -6,7 +6,7 @@ import Question from "metabase-lib/lib/Question";
 
 export const activity = "/activity";
 
-export const exportFormats = ["csv", "xlsx", "json"];
+export const exportFormats = ["xlsx", "json"];
 
 export const newQuestionFlow = () => "/question/new";
 
@@ -17,6 +17,8 @@ export const newPulse = () => `/pulse/create`;
 
 export const newCollection = collectionId =>
   `collection/${collectionId}/new_collection`;
+
+export const managerQuestion = () => "/manager";
 
 export function question(cardId, hash = "", query = "") {
   if (hash && typeof hash === "object") {

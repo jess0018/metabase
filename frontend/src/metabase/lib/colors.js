@@ -47,6 +47,11 @@ const colors = {
   "saturated-purple": "#885AB1",
   "saturated-red": "#ED6E6E",
   "saturated-yellow": "#F9CF48",
+  'schoolpal-blue': '#0064fa',
+  'schoolpal-black': '#112c40',
+  'schoolpal-yelow': '#ff9d00',
+  'schoolpal-red': '#ee1248',
+  'schoolpal-purple': '#9900ff',
 };
 /* eslint-enable no-color-literals */
 export default colors;
@@ -112,6 +117,11 @@ function syncHarmony() {
 // syncs deprecated color families for legacy code
 function syncDeprecatedColorFamilies() {
   // normal + saturated + desaturated
+  normal.schoolpal1 = colors['schoolpal-blue'];
+  normal.schoolpal2 = colors['schoolpal-black'];
+  normal.schoolpal3 = colors['schoolpal-yelow'];
+  normal.schoolpal4 = colors['schoolpal-red'];
+  normal.schoolpal5 = colors['schoolpal-purple'];
   normal.blue = saturated.blue = desaturated.blue = colors["brand"];
   normal.green = saturated.green = desaturated.green = colors["accent1"];
   normal.purple = saturated.purple = desaturated.purple = colors["accent2"];

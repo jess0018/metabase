@@ -41,6 +41,9 @@ import type {
   ParameterOption,
 } from "metabase-types/types/Parameter";
 
+import MyOrgTree from "metabase/containers/MyOrgTree.jsx";
+import MyOrgTreeTBU from "metabase/containers/MyOrgTreeTBU.jsx";
+
 type Props = {
   location: LocationDescriptor,
 
@@ -321,6 +324,9 @@ export default class Dashboard extends Component {
                 )}
                 <div className="wrapper">
                   {dashboard.ordered_cards.length === 0 ? (
+                    //dev:239,265,300
+                    dashboard.id==240?(<MyOrgTreeTBU {...this.props}/>):
+                    (dashboard.id==300?(<MyOrgTree {...this.props}/>):(
                     <Box mt={[2, 4]} color={isNightMode ? "white" : "inherit"}>
                       <EmptyState
                         illustrationElement={
@@ -330,6 +336,7 @@ export default class Dashboard extends Component {
                         message={t`Add a question to start making it useful!`}
                       />
                     </Box>
+                    ))
                   ) : (
                     <DashboardGrid
                       {...this.props}
