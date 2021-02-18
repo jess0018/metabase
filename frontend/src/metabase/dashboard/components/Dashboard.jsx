@@ -298,7 +298,6 @@ export default class Dashboard extends Component {
         {() => (
           <div
             className="full flex flex-column full-height"
-            style={{ overflowX: "hidden" }}
           >
             <header className="DashboardHeader relative z2">
               <DashboardHeader
@@ -316,7 +315,7 @@ export default class Dashboard extends Component {
                 "flex-basis-none": isEditing || isSharing,
               })}
             >
-              <div className="flex-auto overflow-x-hidden">
+              <div className="flex-auto">
                 {!isFullscreen && parametersWidget && (
                   <div className="wrapper flex flex-column align-start mt2 relative z2">
                     {parametersWidget}

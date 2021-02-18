@@ -194,7 +194,7 @@ export default class Navbar extends Component {
         // TODO: hide nav using state in redux instead?
         className="Nav relative bg-brand text-white z3 flex-no-shrink"
         align="center"
-        style={{ backgroundColor: color("nav") }}
+        style={{ backgroundColor: color("nav"), paddingTop: 4, paddingBottom: 4 }}
         py={1}
         pr={1}
       >
