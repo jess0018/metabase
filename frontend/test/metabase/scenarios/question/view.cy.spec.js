@@ -98,7 +98,7 @@ describe("scenarios > question > view", () => {
     beforeEach(() => {
       // All users upgraded to collection view access
       cy.visit("/admin/permissions/collections");
-      cy.get(".Icon-close")
+      cy.icon("close")
         .first()
         .click();
       cy.findByText("View collection").click();
@@ -106,40 +106,33 @@ describe("scenarios > question > view", () => {
       cy.findByText("Yes").click();
 
       // Native query saved in dasbhoard
-      cy.request("POST", "/api/dashboard", {
-        name: "Dashboard",
-      });
+      cy.createDashboard("Dashboard");
 
-      cy.request("POST", "/api/card", {
+      cy.createNativeQuestion({
         name: "Question",
-        dataset_query: {
-          type: "native",
-          native: {
-            query: "select * from products where {{category}} and {{vendor}}",
-            "template-tags": {
-              category: {
-                id: "6b8b10ef-0104-1047-1e5v-2492d5954555",
-                name: "category",
-                "display-name": "CATEGORY",
-                type: "dimension",
-                dimension: ["field-id", PRODUCTS.CATEGORY],
-                "widget-type": "id",
-              },
-              vendor: {
-                id: "6b8b10ef-0104-1047-1e5v-2492d5964545",
-                name: "vendor",
-                "display-name": "VENDOR",
-                type: "dimension",
-                dimension: ["field-id", PRODUCTS.VENDOR],
-                "widget-type": "id",
-              },
+        native: {
+          query: "select * from products where {{category}} and {{vendor}}",
+          "template-tags": {
+            category: {
+              id: "6b8b10ef-0104-1047-1e5v-2492d5954555",
+              name: "category",
+              "display-name": "CATEGORY",
+              type: "dimension",
+              dimension: ["field-id", PRODUCTS.CATEGORY],
+              "widget-type": "id",
+            },
+            vendor: {
+              id: "6b8b10ef-0104-1047-1e5v-2492d5964545",
+              name: "vendor",
+              "display-name": "VENDOR",
+              type: "dimension",
+              dimension: ["field-id", PRODUCTS.VENDOR],
+              "widget-type": "id",
             },
           },
-          database: 1,
         },
-        display: "table",
-        visualization_settings: {},
       });
+
       cy.request("POST", "/api/dashboard/2/cards", {
         id: 2,
         cardId: 4,

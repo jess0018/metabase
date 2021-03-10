@@ -52,18 +52,6 @@ describe("scenarios > dashboard > permissions", () => {
         dataset_query: {
           database: 1,
           type: "native",
-          native: { query: "select 'foo'" },
-        },
-        display: "table",
-        visualization_settings: {},
-        name: "First Question",
-        collection_id,
-      }).then(({ body: { id } }) => (firstQuestionId = id));
-
-      cy.request("POST", "/api/card", {
-        dataset_query: {
-          database: 1,
-          type: "native",
           native: { query: "select 'bar'" },
         },
         display: "table",
@@ -73,40 +61,38 @@ describe("scenarios > dashboard > permissions", () => {
       }).then(({ body: { id } }) => (secondQuestionId = id));
     });
 
-    cy.request("POST", "/api/dashboard", { name: "dashboard" }).then(
-      ({ body: { id: dashId } }) => {
+    cy.createDashboard("dashboard").then(({ body: { id: dashId } }) => {
+      cy.request("POST", `/api/dashboard/${dashId}/cards`, {
+        cardId: firstQuestionId,
+      }).then(({ body: { id: dashCardIdA } }) => {
         cy.request("POST", `/api/dashboard/${dashId}/cards`, {
-          cardId: firstQuestionId,
-        }).then(({ body: { id: dashCardIdA } }) => {
-          cy.request("POST", `/api/dashboard/${dashId}/cards`, {
-            cardId: secondQuestionId,
-          }).then(({ body: { id: dashCardIdB } }) => {
-            cy.request("PUT", `/api/dashboard/${dashId}/cards`, {
-              cards: [
-                {
-                  id: dashCardIdA,
-                  card_id: firstQuestionId,
-                  row: 0,
-                  col: 0,
-                  sizeX: 6,
-                  sizeY: 6,
-                },
-                {
-                  id: dashCardIdB,
-                  card_id: secondQuestionId,
-                  row: 0,
-                  col: 6,
-                  sizeX: 6,
-                  sizeY: 6,
-                },
-              ],
-            });
+          cardId: secondQuestionId,
+        }).then(({ body: { id: dashCardIdB } }) => {
+          cy.request("PUT", `/api/dashboard/${dashId}/cards`, {
+            cards: [
+              {
+                id: dashCardIdA,
+                card_id: firstQuestionId,
+                row: 0,
+                col: 0,
+                sizeX: 6,
+                sizeY: 6,
+              },
+              {
+                id: dashCardIdB,
+                card_id: secondQuestionId,
+                row: 0,
+                col: 6,
+                sizeX: 6,
+                sizeY: 6,
+              },
+            ],
           });
         });
-        dashboardId = dashId;
-        cy.visit(`/dashboard/${dashId}`);
-      },
-    );
+      });
+      dashboardId = dashId;
+      cy.visit(`/dashboard/${dashId}`);
+    });
   });
 
   it("should let admins view all cards in a dashboard", () => {

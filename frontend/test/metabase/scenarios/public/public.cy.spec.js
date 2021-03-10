@@ -32,28 +32,23 @@ describe.skip("scenarios > public", () => {
     signInAsAdmin();
 
     // setup parameterized question
-    cy.request("POST", "/api/card", {
+    cy.createNativeQuestion({
       name: "sql param",
-      dataset_query: {
-        type: "native",
-        native: {
-          query: "select count(*) from products where {{c}}",
-          "template-tags": {
-            c: {
-              id: "e126f242-fbaa-1feb-7331-21ac59f021cc",
-              name: "c",
-              "display-name": "Category",
-              type: "dimension",
-              dimension: ["field-id", PRODUCTS.CATEGORY],
-              default: null,
-              "widget-type": "category",
-            },
+      native: {
+        query: "select count(*) from products where {{c}}",
+        "template-tags": {
+          c: {
+            id: "e126f242-fbaa-1feb-7331-21ac59f021cc",
+            name: "c",
+            "display-name": "Category",
+            type: "dimension",
+            dimension: ["field-id", PRODUCTS.CATEGORY],
+            default: null,
+            "widget-type": "category",
           },
         },
-        database: 1,
       },
       display: "scalar",
-      visualization_settings: {},
     }).then(({ body }) => {
       questionId = body.id;
     });
@@ -75,7 +70,7 @@ describe.skip("scenarios > public", () => {
     it("should allow users to create parameterized dashboards", () => {
       cy.visit(`/question/${questionId}`);
 
-      cy.get(".Icon-pencil").click();
+      cy.icon("pencil").click();
       popover()
         .contains("Add to dashboard")
         .click();
@@ -89,7 +84,7 @@ describe.skip("scenarios > public", () => {
         .contains("Create")
         .click();
 
-      cy.get(".Icon-filter").click();
+      cy.icon("filter").click();
 
       popover()
         .contains("Other Categories")
@@ -130,7 +125,7 @@ describe.skip("scenarios > public", () => {
 
       cy.visit(`/question/${questionId}`);
 
-      cy.get(".Icon-share").click();
+      cy.icon("share").click();
 
       cy.contains("Enable sharing")
         .parent()
@@ -154,7 +149,7 @@ describe.skip("scenarios > public", () => {
 
       cy.visit(`/question/${questionId}`);
 
-      cy.get(".Icon-share").click();
+      cy.icon("share").click();
 
       cy.contains(".cursor-pointer", "Embed this question")
         .should("not.be.disabled")
@@ -174,7 +169,7 @@ describe.skip("scenarios > public", () => {
 
       cy.visit(`/dashboard/${dashboardId}`);
 
-      cy.get(".Icon-share").click();
+      cy.icon("share").click();
       cy.contains("Sharing and embedding").click();
 
       cy.contains("Enable sharing")
@@ -199,7 +194,7 @@ describe.skip("scenarios > public", () => {
 
       cy.visit(`/dashboard/${dashboardId}`);
 
-      cy.get(".Icon-share").click();
+      cy.icon("share").click();
       cy.contains("Sharing and embedding").click();
 
       cy.contains(".cursor-pointer", "Embed this dashboard")

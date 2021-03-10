@@ -21,36 +21,31 @@ function createDashboardWithQuestion(
 
 // Create a native SQL question with two parameters for city and state.
 function createQuestion(options, callback) {
-  cy.request("POST", "/api/card", {
+  cy.createNativeQuestion({
     name: "Count of People by State (SQL)",
-    dataset_query: {
-      type: "native",
-      native: {
-        query:
-          'SELECT "PUBLIC"."PEOPLE"."STATE" AS "STATE", count(*) AS "count" FROM "PUBLIC"."PEOPLE" WHERE 1=1 [[ AND {{city}}]] [[ AND {{state}}]] GROUP BY "PUBLIC"."PEOPLE"."STATE" ORDER BY "count" DESC, "PUBLIC"."PEOPLE"."STATE" ASC',
-        "template-tags": {
-          city: {
-            id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
-            name: "city",
-            "display-name": "City",
-            type: "dimension",
-            dimension: ["field-id", PEOPLE.CITY],
-            "widget-type": "category",
-          },
-          state: {
-            id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
-            name: "state",
-            "display-name": "State",
-            type: "dimension",
-            dimension: ["field-id", PEOPLE.STATE],
-            "widget-type": "category",
-          },
+    native: {
+      query:
+        'SELECT "PUBLIC"."PEOPLE"."STATE" AS "STATE", count(*) AS "count" FROM "PUBLIC"."PEOPLE" WHERE 1=1 [[ AND {{city}}]] [[ AND {{state}}]] GROUP BY "PUBLIC"."PEOPLE"."STATE" ORDER BY "count" DESC, "PUBLIC"."PEOPLE"."STATE" ASC',
+      "template-tags": {
+        city: {
+          id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+          name: "city",
+          "display-name": "City",
+          type: "dimension",
+          dimension: ["field-id", PEOPLE.CITY],
+          "widget-type": "category",
+        },
+        state: {
+          id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+          name: "state",
+          "display-name": "State",
+          type: "dimension",
+          dimension: ["field-id", PEOPLE.STATE],
+          "widget-type": "category",
         },
       },
-      database: 1,
     },
     display: "bar",
-    visualization_settings: {},
   }).then(({ body: { id: questionId } }) => {
     callback(questionId);
   });
@@ -60,9 +55,7 @@ function createQuestion(options, callback) {
 // Once created, add the provided questionId to the dashboard and then
 // map the city/state filters to the template-tags in the native query.
 function createDashboard({ dashboardName, questionId }, callback) {
-  cy.request("POST", "/api/dashboard", {
-    name: dashboardName,
-  }).then(({ body: { id: dashboardId } }) => {
+  cy.createDashboard(dashboardName).then(({ body: { id: dashboardId } }) => {
     cy.request("PUT", `/api/dashboard/${dashboardId}`, {
       parameters: [
         {
@@ -125,10 +118,10 @@ describe("scenarios > dashboard > chained filter", () => {
       cy.request("PUT", `/api/field/${PEOPLE.CITY}`, { has_field_values }),
         cy.visit("/dashboard/1");
       // start editing
-      cy.get(".Icon-pencil").click();
+      cy.icon("pencil").click();
 
       // add a state filter
-      cy.get(".Icon-filter").click();
+      cy.icon("filter").click();
       popover().within(() => {
         cy.findByText("Location").click();
         cy.findByText("State").click();

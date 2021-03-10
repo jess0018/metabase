@@ -13,35 +13,28 @@ const { PRODUCTS } = SAMPLE_DATASET;
 const year = new Date().getFullYear();
 
 function generateQuestions(user) {
-  cy.request("POST", `/api/card`, {
+  cy.createNativeQuestion({
     name: `${user} question`,
-    dataset_query: {
-      type: "native",
-      native: {
-        query: "SELECT * FROM products WHERE {{ID}}",
-        "template-tags": {
-          ID: {
-            id: "6b8b10ef-0104-1047-1e1b-2492d5954322",
-            name: "ID",
-            display_name: "ID",
-            type: "dimension",
-            dimension: ["field-id", PRODUCTS.ID],
-            "widget-type": "category",
-            default: null,
-          },
+    native: {
+      query: "SELECT * FROM products WHERE {{ID}}",
+      "template-tags": {
+        ID: {
+          id: "6b8b10ef-0104-1047-1e1b-2492d5954322",
+          name: "ID",
+          display_name: "ID",
+          type: "dimension",
+          dimension: ["field-id", PRODUCTS.ID],
+          "widget-type": "category",
+          default: null,
         },
       },
-      database: 1,
     },
     display: "scalar",
-    visualization_settings: {},
   });
 }
 
 function generateDashboards(user) {
-  cy.request("POST", "/api/dashboard", {
-    name: `${user} dashboard`,
-  });
+  cy.createDashboard(`${user} dashboard`);
 }
 
 describeWithToken("audit > auditing", () => {
@@ -59,24 +52,24 @@ describeWithToken("audit > auditing", () => {
       generateDashboards(user);
     });
 
-    cy.log("**Download a question**");
+    cy.log("Download a question");
     cy.visit("/question/3");
-    cy.get(".Icon-download").click();
+    cy.icon("download").click();
     cy.request("POST", "/api/card/1/query/json");
 
     signIn("nodata");
 
-    cy.log(`**View ${normal}'s dashboard**`);
+    cy.log(`View ${normal}'s dashboard`);
     cy.visit("/collection/root?type=dashboard");
     cy.findByText(NORMAL_DASHBOARD).click();
     cy.findByText("This dashboard is looking empty.");
     cy.findByText("My personal collection").should("not.exist");
 
-    cy.log("**View old existing question**");
+    cy.log("View old existing question");
     cy.visit("/question/2");
     cy.findByText("18,760");
 
-    cy.log(`**View newly created ${admin}'s question**`);
+    cy.log(`View newly created ${admin}'s question`);
     cy.visit("/collection/root?type");
     cy.findByText(ADMIN_QUESTION).click();
     cy.findByPlaceholderText(/ID/i);

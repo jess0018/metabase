@@ -27,7 +27,7 @@ describe("scenarios > visualizations > maps", () => {
 
     // switch to a pin map visualization
     cy.contains("Visualization").click();
-    cy.get(".Icon-pinmap").click();
+    cy.icon("pinmap").click();
 
     cy.contains("Map type")
       .next()
@@ -62,16 +62,12 @@ describe("scenarios > visualizations > maps", () => {
   });
 
   it.skip("should suggest map visualization regardless of the first column type (metabase#14254)", () => {
-    cy.request("POST", "/api/card", {
+    cy.createNativeQuestion({
       name: "14254",
-      dataset_query: {
-        type: "native",
-        native: {
-          query:
-            'SELECT "PUBLIC"."PEOPLE"."LONGITUDE" AS "LONGITUDE", "PUBLIC"."PEOPLE"."LATITUDE" AS "LATITUDE", "PUBLIC"."PEOPLE"."CITY" AS "CITY"\nFROM "PUBLIC"."PEOPLE"\nLIMIT 10',
-          "template-tags": {},
-        },
-        database: 1,
+      native: {
+        query:
+          'SELECT "PUBLIC"."PEOPLE"."LONGITUDE" AS "LONGITUDE", "PUBLIC"."PEOPLE"."LATITUDE" AS "LATITUDE", "PUBLIC"."PEOPLE"."CITY" AS "CITY"\nFROM "PUBLIC"."PEOPLE"\nLIMIT 10',
+        "template-tags": {},
       },
       display: "map",
       visualization_settings: {
@@ -95,7 +91,7 @@ describe("scenarios > visualizations > maps", () => {
 
     cy.get("@vizSidebar").within(() => {
       // There should be a unique class for "selected" viz type
-      cy.get(".Icon-pinmap")
+      cy.icon("pinmap")
         .parent()
         .should("have.class", "text-white");
 
@@ -140,7 +136,7 @@ describe("scenarios > visualizations > maps", () => {
     cy.get("@texas").click();
     cy.findByText(/View these People/i).click();
 
-    cy.log("**Reported as a regression since v0.37.0**");
+    cy.log("Reported as a regression since v0.37.0");
     cy.wait("@dataset").then(xhr => {
       expect(xhr.request.body.query.filter).not.to.contain("Texas");
     });

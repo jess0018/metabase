@@ -116,15 +116,22 @@
                                   (- offset) :day)
       (truncate-fn expr))))
 
-(defn adjust-day-of-week
+(s/defn adjust-day-of-week
   "Adjust day of week wrt start of week setting."
   ([driver day-of-week]
    (adjust-day-of-week driver day-of-week (driver.common/start-of-week-offset driver)))
+
   ([driver day-of-week offset]
+   (adjust-day-of-week driver day-of-week offset hx/mod))
+
+  ([driver
+    day-of-week
+    offset :- s/Int
+    mod-fn :- (s/pred fn?)]
    (if (not= offset 0)
      (hsql/call :case
-       (hsql/call := (hx/mod (hx/+ day-of-week offset) 7) 0) 7
-       :else                                                 (hx/mod (hx/+ day-of-week offset) 7))
+       (hsql/call := (mod-fn (hx/+ day-of-week offset) 7) 0) 7
+       :else                                                 (mod-fn (hx/+ day-of-week offset) 7))
      day-of-week)))
 
 (defmulti field->identifier
@@ -259,6 +266,18 @@
   "Are we inside a joined field whose join is at the current level of the query?"
   false)
 
+(defmulti prefix-field-alias
+  "Create a Field alias by combining a `prefix` string with `field-alias` string (itself is the result of the
+  `field->alias` method). The default implementation just joins the two strings with `__` -- override this if you need
+  to do something different."
+  {:arglists '([driver prefix field]), :added "0.38.1"}
+  driver/dispatch-on-initialized-driver
+  :hierarchy #'driver/hierarchy)
+
+(defmethod prefix-field-alias :sql
+  [_ prefix field-alias]
+  (str prefix "__" field-alias))
+
 (s/defn ^:private unambiguous-field-alias :- su/NonBlankString
   [driver field-clause :- (s/pred #(mbql.u/match-one % :field-id)
                                   "field-id clause or something wrapping one")]
@@ -269,7 +288,7 @@
     (if (and prefix alias
              (not= prefix *table-alias*)
              (not *joined-field?*))
-      (str prefix "__" alias)
+      (prefix-field-alias driver prefix alias)
       alias)))
 
 (defmethod ->honeysql [:sql (class Field)]
@@ -912,7 +931,7 @@
   (let [subselect (-> query
                       (select-keys [:joins :source-table :source-query :source-metadata :expressions])
                       (assoc :fields (-> query
-                                         (dissoc :source-query)
+                                         (dissoc :source-query :joins)
                                          (mbql.u/match #{:field-literal :field-id :joined-field :expression})
                                          distinct)))]
     (-> query

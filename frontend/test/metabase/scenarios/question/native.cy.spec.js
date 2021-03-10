@@ -163,31 +163,22 @@ describe("scenarios > question > native", () => {
   });
 
   it("can load a question with a date filter (from issue metabase#12228)", () => {
-    cy.request("POST", "/api/card", {
+    cy.createNativeQuestion({
       name: "Test Question",
-      dataset_query: {
-        type: "native",
-        native: {
-          query: "select count(*) from orders where {{created_at}}",
-          "template-tags": {
-            created_at: {
-              id: "6b8b10ef-0104-1047-1e1b-2492d5954322",
-              name: "created_at",
-              "display-name": "Created at",
-              type: "dimension",
-              dimension: ["field-id", ORDERS.CREATED_AT],
-              "widget-type": "date/month-year",
-            },
+      native: {
+        query: "select count(*) from orders where {{created_at}}",
+        "template-tags": {
+          created_at: {
+            id: "6b8b10ef-0104-1047-1e1b-2492d5954322",
+            name: "created_at",
+            "display-name": "Created at",
+            type: "dimension",
+            dimension: ["field-id", ORDERS.CREATED_AT],
+            "widget-type": "date/month-year",
           },
         },
-        database: 1,
       },
       display: "scalar",
-      description: null,
-      visualization_settings: {},
-      collection_id: null,
-      result_metadata: null,
-      metadata_checksum: null,
     }).then(response => {
       cy.visit(`/question/${response.body.id}?created_at=2020-01`);
       cy.contains("580");
@@ -200,7 +191,7 @@ describe("scenarios > question > native", () => {
     cy.get(".ace_content").type("select * from people where false");
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.contains("No results!");
-    cy.get(".Icon-contract").click();
+    cy.icon("contract").click();
     cy.contains("Save").click();
 
     modal().within(() => {
@@ -248,7 +239,7 @@ describe("scenarios > question > native", () => {
       // We can ask variations of that question "on the fly"
       cy.findByText(QUESTION).click();
 
-      cy.log("**Apply a filter**");
+      cy.log("Apply a filter");
       cy.findAllByText("Filter")
         .first()
         .click();
@@ -281,32 +272,26 @@ describe("scenarios > question > native", () => {
   });
 
   it.skip("should not make the question dirty when there are no changes (metabase#14302)", () => {
-    cy.request("POST", "/api/card", {
+    cy.createNativeQuestion({
       name: "14302",
-      dataset_query: {
-        type: "native",
-        native: {
-          query:
-            'SELECT "CATEGORY", COUNT(*)\nFROM "PRODUCTS"\nWHERE "PRICE" > {{PRICE}}\nGROUP BY "CATEGORY"',
-          "template-tags": {
-            PRICE: {
-              id: "39b51ccd-47a7-9df6-a1c5-371918352c79",
-              name: "PRICE",
-              "display-name": "Price",
-              type: "number",
-              default: "10",
-              required: true,
-            },
+      native: {
+        query:
+          'SELECT "CATEGORY", COUNT(*)\nFROM "PRODUCTS"\nWHERE "PRICE" > {{PRICE}}\nGROUP BY "CATEGORY"',
+        "template-tags": {
+          PRICE: {
+            id: "39b51ccd-47a7-9df6-a1c5-371918352c79",
+            name: "PRICE",
+            "display-name": "Price",
+            type: "number",
+            default: "10",
+            required: true,
           },
         },
-        database: 1,
       },
-      display: "table",
-      visualization_settings: {},
     }).then(({ body: { id: QUESTION_ID } }) => {
       cy.visit(`/question/${QUESTION_ID}`);
       cy.findByText("14302");
-      cy.log("**Reported on v0.37.5 - Regression since v0.37.0**");
+      cy.log("Reported on v0.37.5 - Regression since v0.37.0");
       cy.findByText("Save").should("not.exist");
     });
   });
@@ -315,28 +300,22 @@ describe("scenarios > question > native", () => {
     const ORIGINAL_QUERY = "SELECT * FROM ORDERS WHERE {{filter}} LIMIT 2";
 
     // Start with the original version of the question made with API
-    cy.request("POST", "/api/card", {
+    cy.createNativeQuestion({
       name: "12581",
-      dataset_query: {
-        type: "native",
-        native: {
-          query: ORIGINAL_QUERY,
-          "template-tags": {
-            filter: {
-              id: "a3b95feb-b6d2-33b6-660b-bb656f59b1d7",
-              name: "filter",
-              "display-name": "Filter",
-              type: "dimension",
-              dimension: ["field-id", ORDERS.CREATED_AT],
-              "widget-type": "date/month-year",
-              default: null,
-            },
+      native: {
+        query: ORIGINAL_QUERY,
+        "template-tags": {
+          filter: {
+            id: "a3b95feb-b6d2-33b6-660b-bb656f59b1d7",
+            name: "filter",
+            "display-name": "Filter",
+            type: "dimension",
+            dimension: ["field-id", ORDERS.CREATED_AT],
+            "widget-type": "date/month-year",
+            default: null,
           },
         },
-        database: 1,
       },
-      display: "table",
-      visualization_settings: {},
     }).then(({ body: { id: QUESTION_ID } }) => {
       cy.visit(`/question/${QUESTION_ID}`);
     });
@@ -356,14 +335,49 @@ describe("scenarios > question > native", () => {
     });
 
     cy.reload();
-    cy.get(".Icon-pencil").click();
+    cy.icon("pencil").click();
     cy.findByText(/View revision history/i).click();
     cy.findByText(/Revert/i).click(); // Revert to the first revision
     cy.findByText(/Open Editor/i).click();
 
-    cy.log("**Reported failing on v0.35.3**");
+    cy.log("Reported failing on v0.35.3");
     cy.findByText(ORIGINAL_QUERY);
     // Filter dropdown field
     cy.get("fieldset").contains("Filter");
+  });
+
+  it("should reorder template tags by drag and drop (metabase#9357)", () => {
+    cy.visit("/question/new");
+    cy.contains("Native query").click();
+
+    // Write a query with parameter firstparameter,nextparameter,lastparameter.
+    cy.get(".ace_content").type(
+      "{{firstparameter}} {{nextparameter}} {{lastparameter}}",
+      {
+        parseSpecialCharSequences: false,
+        delay: 0,
+      },
+    );
+
+    // Drag the firstparameter to last position
+    cy.get("fieldset .Icon-empty")
+      .first()
+      .trigger("mousedown", 0, 0, { force: true })
+      .trigger("mousemove", 5, 5, { force: true })
+      .trigger("mousemove", 430, 0, { force: true })
+      .trigger("mouseup", 430, 0, { force: true });
+
+    // Ensure they're in the right order
+    cy.findAllByText("Variable name")
+      .parent()
+      .as("variableField");
+
+    cy.get("@variableField")
+      .first()
+      .findByText("nextparameter");
+
+    cy.get("@variableField")
+      .last()
+      .findByText("firstparameter");
   });
 });

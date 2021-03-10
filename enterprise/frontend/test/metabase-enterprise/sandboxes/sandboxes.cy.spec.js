@@ -57,7 +57,7 @@ describeWithToken("formatting > sandboxes", () => {
     });
 
     it("should add key attributes to an existing user", () => {
-      cy.get(".Icon-ellipsis")
+      cy.icon("ellipsis")
         .last()
         .click();
       cy.findByText("Edit user").click();
@@ -100,56 +100,38 @@ describeWithToken("formatting > sandboxes", () => {
       // Orders join Products
       createJoinedQuestion(QUESTION_NAME);
 
-      // Sandbox Orders table on "User ID"
-      cy.request("POST", "/api/mt/gtap", {
-        group_id: DATA_GROUP,
+      cy.sandboxTable({
         table_id: ORDERS_ID,
-        card_id: null,
+        group_id: DATA_GROUP,
         attribute_remappings: {
           [USER_ATTRIBUTE]: ["dimension", ["field-id", ORDERS.USER_ID]],
         },
       });
 
-      cy.log("**--Create parametrized SQL question--**");
-      cy.request("POST", "/api/card", {
+      cy.createNativeQuestion({
         name: "sql param",
-        dataset_query: {
-          type: "native",
-          native: {
-            query: `select id,name,address,email from people where {{${TTAG_NAME}}}`,
-            "template-tags": {
-              [TTAG_NAME]: {
-                id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
-                name: TTAG_NAME,
-                "display-name": "CID",
-                type: "dimension",
-                dimension: ["field-id", PEOPLE.ID],
-                "widget-type": "id",
-              },
+        native: {
+          query: `select id,name,address,email from people where {{${TTAG_NAME}}}`,
+          "template-tags": {
+            [TTAG_NAME]: {
+              id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+              name: TTAG_NAME,
+              "display-name": "CID",
+              type: "dimension",
+              dimension: ["field-id", PEOPLE.ID],
+              "widget-type": "id",
             },
           },
-          database: 1,
         },
-        display: "table",
-        visualization_settings: {},
       }).then(({ body: { id: QUESTION_ID } }) => {
-        // Sandbox `People` table based on previously created SQL question
-        cy.request("POST", "/api/mt/gtap", {
-          group_id: DATA_GROUP,
+        cy.sandboxTable({
           table_id: PEOPLE_ID,
           card_id: QUESTION_ID,
+          group_id: DATA_GROUP,
           attribute_remappings: {
             [USER_ATTRIBUTE]: ["dimension", ["template-tag", TTAG_NAME]],
           },
         });
-      });
-
-      updatePermissionsGraph({
-        schema: {
-          [ORDERS_ID]: { query: "segmented", read: "all" },
-          [PEOPLE_ID]: { query: "segmented", read: "all" },
-        },
-        user_group: DATA_GROUP,
       });
 
       signOut();
@@ -166,18 +148,18 @@ describeWithToken("formatting > sandboxes", () => {
 
     describe("question with joins", () => {
       it("should be sandboxed even after applying a filter to the question", () => {
-        cy.log("**--0. Open saved question with joins--**");
+        cy.log("Open saved question with joins");
         cy.visit("/collection/root");
         cy.findByText(QUESTION_NAME).click();
 
-        cy.log("**--1. Make sure user is initially sandboxed--**");
+        cy.log("Make sure user is initially sandboxed");
         cy.get(".TableInteractive-cellWrapper--firstColumn").should(
           "have.length",
           11,
         );
 
-        cy.log("**--2. Add filter to a question--**");
-        cy.get(".Icon-notebook").click();
+        cy.log("Add filter to a question");
+        cy.icon("notebook").click();
         cy.findByText("Filter").click();
         popover().within(() => {
           cy.findByText("Total").click();
@@ -188,7 +170,7 @@ describeWithToken("formatting > sandboxes", () => {
         cy.findByText("Add filter").click();
         cy.findByText("Visualize").click();
 
-        cy.log("**--3. Make sure user is still sandboxed--**");
+        cy.log("Make sure user is still sandboxed");
         cy.get(".TableInteractive-cellWrapper--firstColumn").should(
           "have.length",
           7,
@@ -213,33 +195,26 @@ describeWithToken("formatting > sandboxes", () => {
       restore();
       signInAsAdmin();
       createUser(sandboxed_user).then(({ body: { id: USER_ID } }) => {
-        cy.log(
-          "**-- Dismiss `it's ok to play around` modal for new users --**",
-        );
+        cy.log("Dismiss `it's ok to play around` modal for new users");
         cy.request("PUT", `/api/user/${USER_ID}/qbnewb`, {});
       });
     });
 
     it("should allow joins to the sandboxed table (metabase-enterprise#154)", () => {
-      cy.log(
-        "**-- 1. Sandbox `People` table on `user_id` attribute for `data` group --**",
-      );
-
-      cy.request("POST", "/api/mt/gtap", {
+      cy.sandboxTable({
+        table_id: PEOPLE_ID,
         attribute_remappings: {
           [ATTR_UID]: ["dimension", ["field-id", PEOPLE.ID]],
         },
-        card_id: null,
-        group_id: COLLECTION_GROUP,
-        table_id: PEOPLE_ID,
       });
 
-      updatePermissionsGraph({
-        schema: {
-          [ORDERS_ID]: "all",
-          [PEOPLE_ID]: { query: "segmented", read: "all" },
-          [PRODUCTS_ID]: "all",
-          [REVIEWS_ID]: "all",
+      cy.updatePermissionsSchemas({
+        schemas: {
+          PUBLIC: {
+            [ORDERS_ID]: "all",
+            [PRODUCTS_ID]: "all",
+            [REVIEWS_ID]: "all",
+          },
         },
       });
 
@@ -252,7 +227,7 @@ describeWithToken("formatting > sandboxes", () => {
       cy.findByText("Pick a column to group by").click();
 
       cy.log(
-        "**-- Original issue reported failure to find 'User' group / foreign key--**",
+        "Original issue reported failure to find 'User' group / foreign key",
       );
 
       popover().within(() => {
@@ -280,48 +255,30 @@ describeWithToken("formatting > sandboxes", () => {
       const QUESTION_NAME = "EE_548";
       const CC_NAME = "CC_548"; // Custom column
 
-      cy.log("**-- 1. Sandbox `Orders` table on `user_id` attribute --**");
-
-      cy.request("POST", "/api/mt/gtap", {
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
         attribute_remappings: {
           [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
         },
-        card_id: null,
-        group_id: COLLECTION_GROUP,
-        table_id: ORDERS_ID,
       });
 
-      updatePermissionsGraph({
-        schema: {
-          [ORDERS_ID]: { query: "segmented", read: "all" },
-        },
-      });
-
-      cy.log("**-- 2. Create and save a question --**");
-
-      cy.request("POST", "/api/card", {
+      cy.createQuestion({
         name: QUESTION_NAME,
-        dataset_query: {
-          database: 1,
-          query: {
-            expressions: {
-              [CC_NAME]: [
-                "case",
+        query: {
+          expressions: {
+            [CC_NAME]: [
+              "case",
+              [
                 [
-                  [
-                    [">", ["field-id", ORDERS.DISCOUNT], 0],
-                    ["field-id", ORDERS.DISCOUNT],
-                  ],
+                  [">", ["field-id", ORDERS.DISCOUNT], 0],
+                  ["field-id", ORDERS.DISCOUNT],
                 ],
-                { default: ["field-id", ORDERS.TOTAL] },
               ],
-            },
-            "source-table": ORDERS_ID,
+              { default: ["field-id", ORDERS.TOTAL] },
+            ],
           },
-          type: "query",
+          "source-table": ORDERS_ID,
         },
-        display: "table",
-        visualization_settings: {},
       }).then(({ body: { id: QUESTION_ID } }) => {
         signOut();
         signInAsSandboxedUser();
@@ -333,7 +290,7 @@ describeWithToken("formatting > sandboxes", () => {
         cy.visit(`/question/${QUESTION_ID}`);
         cy.findByText(QUESTION_NAME);
 
-        cy.log("**Reported failing since v1.36.4**");
+        cy.log("Reported failing since v1.36.4");
         cy.wait("@cardQuery").then(xhr => {
           expect(xhr.response.body.error).not.to.exist;
         });
@@ -347,7 +304,7 @@ describeWithToken("formatting > sandboxes", () => {
         const QUESTION_NAME = "13641";
 
         if (test === "remapped") {
-          cy.log("**-- Remap Product ID's display value to `title` --**");
+          cy.log("Remap Product ID's display value to `title`");
           remapDisplayValueToFK({
             display_value: ORDERS.PRODUCT_ID,
             name: "Product ID",
@@ -355,46 +312,38 @@ describeWithToken("formatting > sandboxes", () => {
           });
         }
 
-        cy.log("**-- 1. Sandbox `Orders` table on `user_id` attribute --**");
-
-        cy.request("POST", "/api/mt/gtap", {
+        cy.sandboxTable({
+          table_id: ORDERS_ID,
           attribute_remappings: {
             [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
           },
-          card_id: null,
-          group_id: COLLECTION_GROUP,
-          table_id: ORDERS_ID,
         });
 
-        updatePermissionsGraph({
-          schema: {
-            [PRODUCTS_ID]: "all",
-            [ORDERS_ID]: { query: "segmented", read: "all" },
+        cy.updatePermissionsSchemas({
+          schemas: {
+            PUBLIC: {
+              [PRODUCTS_ID]: "all",
+            },
           },
         });
 
         cy.log(
-          "**-- 2. Create question based on steps in [#13641](https://github.com/metabase/metabase/issues/13641)--**",
+          "Create question based on steps in [#13641](https://github.com/metabase/metabase/issues/13641)",
         );
-        cy.request("POST", "/api/card", {
+        cy.createQuestion({
           name: QUESTION_NAME,
-          dataset_query: {
-            database: 1,
-            query: {
-              aggregation: [["count"]],
-              breakout: [
-                [
-                  "fk->",
-                  ["field-id", ORDERS.PRODUCT_ID],
-                  ["field-id", PRODUCTS.CATEGORY],
-                ],
+          query: {
+            aggregation: [["count"]],
+            breakout: [
+              [
+                "fk->",
+                ["field-id", ORDERS.PRODUCT_ID],
+                ["field-id", PRODUCTS.CATEGORY],
               ],
-              "source-table": ORDERS_ID,
-            },
-            type: "query",
+            ],
+            "source-table": ORDERS_ID,
           },
           display: "bar",
-          visualization_settings: {},
         });
 
         signOut();
@@ -418,7 +367,7 @@ describeWithToken("formatting > sandboxes", () => {
         });
         cy.findByText("View these Orders").click();
 
-        cy.log("**Reported failing on v1.37.0.2**");
+        cy.log("Reported failing on v1.37.0.2");
         cy.wait("@dataset").then(xhr => {
           expect(xhr.response.body.error).not.to.exist;
         });
@@ -431,54 +380,46 @@ describeWithToken("formatting > sandboxes", () => {
       const PRODUCTS_ALIAS = "Products";
       const QUESTION_NAME = "EE_535";
 
-      cy.log("**-- 1. Sandbox `Orders` table on `user_id` attribute --**");
-
-      cy.request("POST", "/api/mt/gtap", {
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
         attribute_remappings: {
           [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
         },
-        card_id: null,
-        group_id: COLLECTION_GROUP,
-        table_id: ORDERS_ID,
       });
 
-      updatePermissionsGraph({
-        schema: {
-          [PRODUCTS_ID]: "all",
-          [ORDERS_ID]: { query: "segmented", read: "all" },
+      cy.updatePermissionsSchemas({
+        schemas: {
+          PUBLIC: {
+            [PRODUCTS_ID]: "all",
+          },
         },
       });
 
       cy.log(
-        "**-- 2. Create question based on steps in [#535](https://github.com/metabase/metabase-enterprise/issues/535)--**",
+        "Create question based on steps in https://github.com/metabase/metabase-enterprise/issues/535",
       );
-      cy.request("POST", "/api/card", {
+      cy.createQuestion({
         name: QUESTION_NAME,
-        dataset_query: {
-          database: 1,
-          query: {
-            aggregation: [["count"]],
-            breakout: [
-              ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.CATEGORY]],
-            ],
-            joins: [
-              {
-                alias: PRODUCTS_ALIAS,
-                condition: [
-                  "=",
-                  ["field-id", ORDERS.PRODUCT_ID],
-                  ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.ID]],
-                ],
-                fields: "all",
-                "source-table": PRODUCTS_ID,
-              },
-            ],
-            "source-table": ORDERS_ID,
-          },
-          type: "query",
+        query: {
+          aggregation: [["count"]],
+          breakout: [
+            ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.CATEGORY]],
+          ],
+          joins: [
+            {
+              alias: PRODUCTS_ALIAS,
+              condition: [
+                "=",
+                ["field-id", ORDERS.PRODUCT_ID],
+                ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.ID]],
+              ],
+              fields: "all",
+              "source-table": PRODUCTS_ID,
+            },
+          ],
+          "source-table": ORDERS_ID,
         },
         display: "bar",
-        visualization_settings: {},
       });
 
       signOut();
@@ -503,14 +444,14 @@ describeWithToken("formatting > sandboxes", () => {
       cy.findByText("View these Orders").click();
 
       cy.wait("@dataset");
-      cy.log("**Reported failing on v1.36.4**");
+      cy.log("Reported failing on v1.36.4");
       cy.findByText("Category is Doohickey");
       cy.findByText("97.44"); // Subtotal for order #10
     });
 
     describe("with display values remapped to use a foreign key", () => {
       beforeEach(() => {
-        cy.log("**-- Remap Product ID's display value to `title` --**");
+        cy.log("Remap Product ID's display value to `title`");
         remapDisplayValueToFK({
           display_value: ORDERS.PRODUCT_ID,
           name: "Product ID",
@@ -526,68 +467,38 @@ describeWithToken("formatting > sandboxes", () => {
         cy.server();
         cy.route("POST", "/api/dataset").as("dataset");
 
-        cy.log("**-- 1. Create 'Orders'-based question using QB --**");
-
-        cy.request("POST", "/api/card", {
+        cy.log("Create 'Orders'-based question using QB");
+        cy.createQuestion({
           name: "520_Orders",
-          dataset_query: {
-            type: "query",
-            query: {
-              "source-table": ORDERS_ID,
-              filter: [">", ["field-id", ORDERS.TOTAL], 10],
-            },
-            database: 1,
+          query: {
+            "source-table": ORDERS_ID,
+            filter: [">", ["field-id", ORDERS.TOTAL], 10],
           },
-          display: "table",
-          visualization_settings: {},
         }).then(({ body: { id: CARD_ID } }) => {
-          cy.log(
-            "**-- 1a. Sandbox `Orders` table based on this QB question and user attribute --**",
-          );
-
-          cy.request("POST", "/api/mt/gtap", {
+          cy.sandboxTable({
+            table_id: ORDERS_ID,
+            card_id: CARD_ID,
             attribute_remappings: {
               [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
             },
-            card_id: CARD_ID,
-            group_id: COLLECTION_GROUP,
-            table_id: ORDERS_ID,
           });
         });
 
-        cy.log("**-- 2. Create 'Products'-based question using QB --**");
-        cy.request("POST", "/api/card", {
+        cy.log("Create 'Products'-based question using QB");
+        cy.createQuestion({
           name: "520_Products",
-          dataset_query: {
-            type: "query",
-            query: {
-              "source-table": PRODUCTS_ID,
-              filter: [">", ["field-id", PRODUCTS.PRICE], 10],
-            },
-            database: 1,
+          query: {
+            "source-table": PRODUCTS_ID,
+            filter: [">", ["field-id", PRODUCTS.PRICE], 10],
           },
-          display: "table",
-          visualization_settings: {},
         }).then(({ body: { id: CARD_ID } }) => {
-          cy.log(
-            "**-- 2a. Sandbox `Products` table based on this QB question and user attribute --**",
-          );
-
-          cy.request("POST", "/api/mt/gtap", {
+          cy.sandboxTable({
+            table_id: PRODUCTS_ID,
+            card_id: CARD_ID,
             attribute_remappings: {
               [ATTR_CAT]: ["dimension", ["field-id", PRODUCTS.CATEGORY]],
             },
-            card_id: CARD_ID,
-            group_id: COLLECTION_GROUP,
-            table_id: PRODUCTS_ID,
           });
-        });
-
-        updatePermissionsGraph({
-          schema: {
-            [PRODUCTS_ID]: { query: "segmented", read: "all" },
-            [ORDERS_ID]: { query: "segmented", read: "all" },
-          },
         });
 
         signOut();
@@ -605,7 +516,7 @@ describeWithToken("formatting > sandboxes", () => {
         cy.findByText(/View details/i).click();
 
         cy.log(
-          "**It should show object details instead of filtering by this Product ID**",
+          "It should show object details instead of filtering by this Product ID",
         );
         cy.findByText("McClure-Lockman");
       });
@@ -628,69 +539,48 @@ describeWithToken("formatting > sandboxes", () => {
           cy.route("POST", "/api/card/*/query").as("cardQuery");
           cy.route("PUT", "/api/card/*").as("questionUpdate");
 
-          cy.log("**-- 1. Create the first native question with a filter --**");
-          cy.request("POST", "/api/card", {
+          cy.createNativeQuestion({
             name: "EE_520_Q1",
-            dataset_query: {
-              database: 1,
-              native: {
-                query:
-                  "SELECT * FROM ORDERS WHERE USER_ID={{sandbox}} AND TOTAL > 10",
-                "template-tags": {
-                  sandbox: {
-                    "display-name": "Sandbox",
-                    id: "1115dc4f-6b9d-812e-7f72-b87ab885c88a",
-                    name: "sandbox",
-                    type: "number",
-                  },
+            native: {
+              query:
+                "SELECT * FROM ORDERS WHERE USER_ID={{sandbox}} AND TOTAL > 10",
+              "template-tags": {
+                sandbox: {
+                  "display-name": "Sandbox",
+                  id: "1115dc4f-6b9d-812e-7f72-b87ab885c88a",
+                  name: "sandbox",
+                  type: "number",
                 },
               },
-              type: "native",
             },
-            display: "table",
-            visualization_settings: {},
           }).then(({ body: { id: CARD_ID } }) => {
             test === "workaround"
               ? runAndSaveQuestion({ question: CARD_ID, sandboxValue: "1" })
               : null;
 
-            cy.log(
-              "**-- 1a. Sandbox `Orders` table based on this question --**",
-            );
-
-            cy.request("POST", "/api/mt/gtap", {
+            cy.sandboxTable({
+              table_id: ORDERS_ID,
+              card_id: CARD_ID,
               attribute_remappings: {
                 [ATTR_UID]: ["variable", ["template-tag", "sandbox"]],
               },
-              card_id: CARD_ID,
-              group_id: COLLECTION_GROUP,
-              table_id: ORDERS_ID,
             });
           });
-          cy.log(
-            "**-- 2. Create the second native question with a filter --**",
-          );
 
-          cy.request("POST", "/api/card", {
+          cy.createNativeQuestion({
             name: "EE_520_Q2",
-            dataset_query: {
-              database: 1,
-              native: {
-                query:
-                  "SELECT * FROM PRODUCTS WHERE CATEGORY={{sandbox}} AND PRICE > 10",
-                "template-tags": {
-                  sandbox: {
-                    "display-name": "Sandbox",
-                    id: "3d69ba99-7076-2252-30bd-0bb8810ba895",
-                    name: "sandbox",
-                    type: "text",
-                  },
+            native: {
+              query:
+                "SELECT * FROM PRODUCTS WHERE CATEGORY={{sandbox}} AND PRICE > 10",
+              "template-tags": {
+                sandbox: {
+                  "display-name": "Sandbox",
+                  id: "3d69ba99-7076-2252-30bd-0bb8810ba895",
+                  name: "sandbox",
+                  type: "text",
                 },
               },
-              type: "native",
             },
-            display: "table",
-            visualization_settings: {},
           }).then(({ body: { id: CARD_ID } }) => {
             test === "workaround"
               ? runAndSaveQuestion({
@@ -699,25 +589,13 @@ describeWithToken("formatting > sandboxes", () => {
                 })
               : null;
 
-            cy.log(
-              "**-- 2a. Sandbox `Products` table based on this question --**",
-            );
-
-            cy.request("POST", "/api/mt/gtap", {
+            cy.sandboxTable({
+              table_id: PRODUCTS_ID,
+              card_id: CARD_ID,
               attribute_remappings: {
                 [ATTR_CAT]: ["variable", ["template-tag", "sandbox"]],
               },
-              card_id: CARD_ID,
-              group_id: COLLECTION_GROUP,
-              table_id: PRODUCTS_ID,
             });
-          });
-
-          updatePermissionsGraph({
-            schema: {
-              [PRODUCTS_ID]: { query: "segmented", read: "all" },
-              [ORDERS_ID]: { query: "segmented", read: "all" },
-            },
           });
 
           signOut();
@@ -725,10 +603,10 @@ describeWithToken("formatting > sandboxes", () => {
 
           openOrdersTable();
 
-          cy.log("**-- Reported failing on v1.36.x --**");
+          cy.log("Reported failing on v1.36.x");
 
           cy.log(
-            "**It should show remapped Display Values instead of Product ID**",
+            "It should show remapped Display Values instead of Product ID",
           );
           cy.get(".cellData")
             .contains("Awesome Concrete Shoes")
@@ -736,7 +614,7 @@ describeWithToken("formatting > sandboxes", () => {
           cy.findByText(/View details/i).click();
 
           cy.log(
-            "**It should show object details instead of filtering by this Product ID**",
+            "It should show object details instead of filtering by this Product ID",
           );
           // The name of this Vendor is visible in "details" only
           cy.findByText("McClure-Lockman");
@@ -764,23 +642,18 @@ describeWithToken("formatting > sandboxes", () => {
         cy.server();
         cy.route("POST", "/api/dataset").as("dataset");
 
-        cy.log(
-          "**-- 1. Sandbox `Orders` table based on user attribute `attr_uid` --**",
-        );
-
-        cy.request("POST", "/api/mt/gtap", {
+        cy.sandboxTable({
           table_id: ORDERS_ID,
-          group_id: COLLECTION_GROUP,
-          card_id: null,
           attribute_remappings: {
             [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
           },
         });
 
-        updatePermissionsGraph({
-          schema: {
-            [ORDERS_ID]: { query: "segmented", read: "all" },
-            [PRODUCTS_ID]: "all",
+        cy.updatePermissionsSchemas({
+          schemas: {
+            PUBLIC: {
+              [PRODUCTS_ID]: "all",
+            },
           },
         });
 
@@ -802,7 +675,7 @@ describeWithToken("formatting > sandboxes", () => {
         const PRODUCTS_ALIAS = "Products";
 
         if (test === "remapped") {
-          cy.log("**-- Remap Product ID's display value to `title` --**");
+          cy.log("Remap Product ID's display value to `title`");
           remapDisplayValueToFK({
             display_value: ORDERS.PRODUCT_ID,
             name: "Product ID",
@@ -810,68 +683,42 @@ describeWithToken("formatting > sandboxes", () => {
           });
         }
 
-        cy.log("**-- 1. Sandbox `Orders` table --**");
-
-        cy.request("POST", "/api/mt/gtap", {
+        cy.sandboxTable({
+          table_id: ORDERS_ID,
           attribute_remappings: {
             user_id: ["dimension", ["field-id", ORDERS.USER_ID]],
           },
-          card_id: null,
-          table_id: ORDERS_ID,
-          group_id: COLLECTION_GROUP,
         });
 
-        cy.log("**-- 2. Sandbox `Products` table --**");
-
-        cy.request("POST", "/api/mt/gtap", {
+        cy.sandboxTable({
+          table_id: PRODUCTS_ID,
           attribute_remappings: {
             user_cat: ["dimension", ["field-id", PRODUCTS.CATEGORY]],
           },
-          card_id: null,
-          table_id: PRODUCTS_ID,
-          group_id: COLLECTION_GROUP,
         });
 
-        updatePermissionsGraph({
-          schema: {
-            [PRODUCTS_ID]: { query: "segmented", read: "all" },
-            [ORDERS_ID]: { query: "segmented", read: "all" },
-          },
-        });
-
-        cy.log("**-- 3. Create question with joins --**");
-
-        cy.request("POST", "/api/card", {
+        cy.createQuestion({
           name: QUESTION_NAME,
-          dataset_query: {
-            database: 1,
-            query: {
-              aggregation: [["count"]],
-              breakout: [
-                [
-                  "joined-field",
-                  PRODUCTS_ALIAS,
-                  ["field-id", PRODUCTS.CATEGORY],
+          query: {
+            aggregation: [["count"]],
+            breakout: [
+              ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.CATEGORY]],
+            ],
+            joins: [
+              {
+                fields: "all",
+                "source-table": PRODUCTS_ID,
+                condition: [
+                  "=",
+                  ["field-id", ORDERS.PRODUCT_ID],
+                  ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.ID]],
                 ],
-              ],
-              joins: [
-                {
-                  fields: "all",
-                  "source-table": PRODUCTS_ID,
-                  condition: [
-                    "=",
-                    ["field-id", ORDERS.PRODUCT_ID],
-                    ["joined-field", PRODUCTS_ALIAS, ["field-id", PRODUCTS.ID]],
-                  ],
-                  alias: PRODUCTS_ALIAS,
-                },
-              ],
-              "source-table": ORDERS_ID,
-            },
-            type: "query",
+                alias: PRODUCTS_ALIAS,
+              },
+            ],
+            "source-table": ORDERS_ID,
           },
           display: "bar",
-          visualization_settings: {},
         });
 
         signOut();
@@ -909,26 +756,17 @@ describeWithToken("formatting > sandboxes", () => {
       cy.server();
       cy.route("POST", "/api/mt/gtap").as("sandboxTable");
 
-      cy.log(
-        "**-- 1. Create question that will have differently-typed columns than the sandboxed table --**",
-      );
-
-      cy.request("POST", "/api/card", {
+      // Question with differently-typed columns than the sandboxed table
+      cy.createNativeQuestion({
         name: QUESTION_NAME,
-        dataset_query: {
-          database: 1,
-          type: "native",
-          native: { query: "SELECT CAST(ID AS VARCHAR) AS ID FROM ORDERS;" },
-        },
-        display: "table",
-        visualization_settings: {},
+        native: { query: "SELECT CAST(ID AS VARCHAR) AS ID FROM ORDERS;" },
       });
 
       cy.visit("/admin/permissions/databases/1/schemas/PUBLIC/tables");
       // |                | All users | collection |
       // |--------------- |:---------:|:----------:|
       // | Orders         |   X (0)   |    X (1)   |
-      cy.get(".Icon-close")
+      cy.icon("close")
         .eq(1) // No better way of doing this, undfortunately (see table above)
         .click();
       cy.findByText("Grant sandboxed access").click();
@@ -975,30 +813,17 @@ describeWithToken("formatting > sandboxes", () => {
       cy.server();
       cy.route("POST", "/api/dataset").as("dataset");
 
-      cy.log("**-- 1. Sandbox `Orders` table --**");
-      cy.request("POST", "/api/mt/gtap", {
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
         attribute_remappings: {
           [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
         },
-        card_id: null,
-        table_id: ORDERS_ID,
-        group_id: COLLECTION_GROUP,
       });
 
-      cy.log("**-- 2. Sandbox `Products` table --**");
-      cy.request("POST", "/api/mt/gtap", {
+      cy.sandboxTable({
+        table_id: PRODUCTS_ID,
         attribute_remappings: {
           [ATTR_CAT]: ["dimension", ["field-id", PRODUCTS.CATEGORY]],
-        },
-        card_id: null,
-        table_id: PRODUCTS_ID,
-        group_id: COLLECTION_GROUP,
-      });
-
-      updatePermissionsGraph({
-        schema: {
-          [PRODUCTS_ID]: { query: "segmented", read: "all" },
-          [ORDERS_ID]: { query: "segmented", read: "all" },
         },
       });
 
@@ -1020,7 +845,7 @@ describeWithToken("formatting > sandboxes", () => {
         });
       cy.findAllByRole("button", { name: "Done" }).click();
       // Rerun the query
-      cy.get(".Icon-play")
+      cy.icon("play")
         .last()
         .click();
 
@@ -1030,80 +855,153 @@ describeWithToken("formatting > sandboxes", () => {
       cy.contains("Subtotal").should("not.exist");
       cy.contains("37.65").should("not.exist");
     });
+
+    it("should work with pivot tables (metabase#14969)", () => {
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
+        attribute_remappings: {
+          [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
+        },
+      });
+
+      cy.sandboxTable({
+        table_id: PEOPLE_ID,
+        attribute_remappings: {
+          [ATTR_UID]: ["dimension", ["field-id", PEOPLE.ID]],
+        },
+      });
+
+      cy.sandboxTable({
+        table_id: PRODUCTS_ID,
+        attribute_remappings: {
+          [ATTR_CAT]: ["dimension", ["field-id", PRODUCTS.CATEGORY]],
+        },
+      });
+
+      cy.request("POST", "/api/card/", {
+        name: "14969",
+        dataset_query: {
+          type: "query",
+          query: {
+            "source-table": ORDERS_ID,
+            joins: [
+              {
+                fields: "all",
+                "source-table": PEOPLE_ID,
+                condition: [
+                  "=",
+                  ["field-id", ORDERS.USER_ID],
+                  ["joined-field", "People - User", ["field-id", PEOPLE.ID]],
+                ],
+                alias: "People - User",
+              },
+            ],
+            aggregation: [["sum", ["field-id", ORDERS.TOTAL]]],
+            breakout: [
+              ["joined-field", "People - User", ["field-id", PEOPLE.SOURCE]],
+              [
+                "fk->",
+                ["field-id", ORDERS.PRODUCT_ID],
+                ["field-id", PRODUCTS.CATEGORY],
+              ],
+            ],
+          },
+          database: 1,
+        },
+        display: "pivot",
+        visualization_settings: {},
+      }).then(({ body: { id: QUESTION_ID } }) => {
+        cy.server();
+        cy.route("POST", `/api/card/pivot/${QUESTION_ID}/query`).as(
+          "cardQuery",
+        );
+
+        signOut();
+        signInAsSandboxedUser();
+
+        cy.visit(`/question/${QUESTION_ID}`);
+
+        cy.wait("@cardQuery").then(xhr => {
+          expect(xhr.response.body.cause).not.to.exist;
+        });
+      });
+
+      cy.findByText("Twitter");
+      cy.findByText("Row totals");
+    });
+
+    it.skip("should show dashboard subscriptions for sandboxed user (metabase#14990)", () => {
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
+        attribute_remappings: {
+          [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
+        },
+      });
+
+      signInAsSandboxedUser();
+      cy.visit("/dashboard/1");
+      cy.icon("share").click();
+      cy.findByText("Dashboard subscriptions").click();
+      // We're starting without email or Slack being set up so it's expected to see the following:
+      cy.findByText("Create a dashboard subscription");
+      cy.findAllByRole("link", { name: "set up email" });
+      cy.findAllByRole("link", { name: "configure Slack" });
+    });
+
+    it.skip("sandboxed user should be able to send pulses to Slack (metabase#14844)", () => {
+      cy.viewport(1400, 1000);
+
+      cy.server();
+      cy.route("GET", "/api/collection/*").as("collection");
+
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
+        attribute_remappings: {
+          [ATTR_UID]: ["dimension", ["field-id", ORDERS.USER_ID]],
+        },
+      });
+
+      signOut();
+      signInAsSandboxedUser();
+
+      cy.visit("/pulse/create");
+      cy.wait("@collection");
+      cy.findByText("Where should this data go?")
+        .parent()
+        .within(() => {
+          cy.findByText("Email");
+          cy.findByText("Slack");
+        });
+    });
   });
 });
 
 function signInAsSandboxedUser() {
-  cy.log("**-- Logging in as sandboxed user --**");
+  cy.log("Logging in as sandboxed user");
   cy.request("POST", "/api/session", {
     username: sandboxed_user.email,
     password: sandboxed_user.password,
   });
 }
 
-/**
- * As per definition for `PUT /graph` from `permissions.clj`:
- *
- * This should return the same graph, in the same format,
- * that you got from `GET /api/permissions/graph`, with any changes made in the wherever necessary.
- * This modified graph must correspond to the `PermissionsGraph` schema.
- *
- * That's why we must chain GET and PUT requests one after the other.
- */
-
-function updatePermissionsGraph({
-  schema = {},
-  user_group = COLLECTION_GROUP,
-  database_id = 1,
-} = {}) {
-  if (typeof schema !== "object") {
-    throw new Error("`schema` must be an object!");
-  }
-
-  cy.log("**-- Fetch permissions graph --**");
-  cy.request("GET", "/api/permissions/graph", {}).then(
-    ({ body: { groups, revision } }) => {
-      // This mutates the original `groups` object => we'll pass it next to the `PUT` request
-      groups[user_group] = {
-        [database_id]: {
-          schemas: {
-            PUBLIC: schema,
-          },
-        },
-      };
-
-      cy.log("**-- Update/save permissions --**");
-      cy.request("PUT", "/api/permissions/graph", {
-        groups,
-        revision,
-      });
-    },
-  );
-}
-
 function createJoinedQuestion(name) {
-  return cy.request("POST", "/api/card", {
+  return cy.createQuestion({
     name,
-    dataset_query: {
-      type: "query",
-      query: {
-        "source-table": ORDERS_ID,
-        joins: [
-          {
-            fields: "all",
-            "source-table": PRODUCTS_ID,
-            condition: [
-              "=",
-              ["field-id", ORDERS.PRODUCT_ID],
-              ["joined-field", "Products", ["field-id", PRODUCTS.ID]],
-            ],
-            alias: "Products",
-          },
-        ],
-      },
-      database: 1,
+
+    query: {
+      "source-table": ORDERS_ID,
+      joins: [
+        {
+          fields: "all",
+          "source-table": PRODUCTS_ID,
+          condition: [
+            "=",
+            ["field-id", ORDERS.PRODUCT_ID],
+            ["joined-field", "Products", ["field-id", PRODUCTS.ID]],
+          ],
+          alias: "Products",
+        },
+      ],
     },
-    display: "table",
-    visualization_settings: {},
   });
 }
