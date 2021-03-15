@@ -119,6 +119,8 @@ function getDateStyleOptionsForUnit(
     dateStyleOption("YYYY/MM/DD",unit,null,abbreviate,separator),
     dateStyleOption("YYYY年MM月DD日",unit,null,abbreviate,separator),
     dateStyleOption("YYYYMMDD",unit,null,abbreviate,separator),
+    dateStyleOption("YYYY/MM",unit,null,abbreviate,separator),
+    dateStyleOption("YYYY年MM月",unit,null,abbreviate,separator),
     dateStyleOption("MM/DD", unit, null, abbreviate, separator),
     dateStyleOption("MMDD", unit, null, abbreviate, separator),
     dateStyleOption("MM-DD", unit, null, abbreviate, separator),
