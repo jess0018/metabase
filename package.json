@@ -10,6 +10,8 @@
     "yarn": ">=1.12.3"
   },
   "dependencies": {
+    "antd": "^3.24.2",
+    "react-retina-image": "^2.0.5",
     "ace-builds": "^1.4.7",
     "chevrotain": "^6.5.0",
     "classlist-polyfill": "^1.2.0",

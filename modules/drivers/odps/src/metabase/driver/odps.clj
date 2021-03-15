@@ -157,26 +157,6 @@
 (defmethod sql.qp/date [:odps :quarter-of-year] [_ _ expr]
            (hsql/call :ceil (hx// (hsql/call :datepart expr (hx/literal "mm")) 3)))
 
-(defmethod driver/date-add :odps [_ unit amount]
-  (hsql/raw (format "dateadd(getdate(), %d, '%s')" (case unit
-                                                           :second  (int amount)
-                                                           :minute  (int amount)
-                                                           :hour    (int amount)
-                                                           :day     (int amount)
-                                                           :week    (int (hx/* amount 7))
-                                                           :month   (int amount)
-                                                           :quarter (int (hx/* amount 3))
-                                                           :year    (int amount))
-                                                     (case unit
-                                                          :second  (name "ss")
-                                                          :minute  (name "mi")
-                                                          :hour    (name "hh")
-                                                          :day     (name "dd")
-                                                          :week    (name "dd")
-                                                          :month   (name "mm")
-                                                          :quarter (name "mm")
-                                                          :year    (name "yyyy")))))
-
 (defmethod unprepare/unprepare-value [:odps Date] [_ value]
            (hformat/to-sql
              (hsql/call :to_date (hx/literal (u.date/format-sql value)) (hx/literal "yyyy-mm-ddThh:mi:ss.ff3Z"))))
@@ -206,15 +186,15 @@
 
 (defmethod unprepare/unprepare-value [:odps LocalDateTime]
   [_ t]
-  (format "to_char('%s', 'yyyy-mm-dd hh-mi-ss')" (u.date/format-sql (t/local-date-time t))))
+  (format "to_date('%s', 'yyyy-mm-dd hh:mi:ss')" (u.date/format-sql (t/local-date-time t))))
 
 (defmethod unprepare/unprepare-value [:odps OffsetDateTime]
   [_ t]
-  (format "to_char('%s', 'yyyy-mm-dd hh-mi-ss')" (u.date/format-sql (t/local-date-time t))))
+  (format "to_date('%s', 'yyyy-mm-dd hh:mi:ss')" (u.date/format-sql (t/local-date-time t))))
 
 (defmethod unprepare/unprepare-value [:odps ZonedDateTime]
   [_ t]
-  (format "to_char('%s', 'yyyy-mm-dd hh-mi-ss')" (u.date/format-sql (t/local-date-time t))))
+  (format "to_date('%s', 'yyyy-mm-dd hh:mi:ss')" (u.date/format-sql (t/local-date-time t))))
 
 ;; Hive/Spark SQL doesn't seem to like DATEs so convert it to a DATETIME first
 (defmethod sql-jdbc.execute/set-parameter [:odps LocalDate]
