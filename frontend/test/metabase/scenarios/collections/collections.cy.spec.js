@@ -161,71 +161,6 @@ describe("scenarios > collection_defaults", () => {
       });
     });
 
-    describe("managing items", () => {
-      it("should let a user move a collection item via modal", () => {
-        cy.visit("/collection/root");
-
-        // 1. Click on the ... menu
-        openEllipsisMenuFor("Orders");
-
-        // 2. Select "move this" from the popover
-        cy.findByText("Move this item").click();
-        modal().within(() => {
-          cy.findByText(`Move "Orders"?`);
-          // 3. Select a collection that has child collections and hit the right chevron to navigate there
-          cy.findByText("First collection")
-            .next() // right chevron icon
-            .click();
-          cy.findByText("Second collection").click();
-          // 4. Move that item
-          cy.findByText("Move").click();
-        });
-        // Assert that the item no longer exists in "Our collection"...
-        cy.findByText("Orders").should("not.exist");
-
-        openDropdownFor("First collection");
-        // ...and that it is indeed moved inside "Second collection"
-        cy.findByText("Second collection").click();
-        cy.findByText("Orders");
-      });
-
-      it("should allow a user to pin an item", () => {
-        cy.visit("/collection/root");
-        // Assert that we're starting from a scenario with no pins
-        cy.findByText("Pinned items").should("not.exist");
-
-        // 1. Click on the ... menu
-        openEllipsisMenuFor("Orders in a dashboard");
-
-        // 2. Select "pin this" from the popover
-        cy.findByText("Pin this item").click();
-
-        // 3. Should see "pinned items" and the item should be in that section
-        cy.findByText("Pinned items")
-          .parent()
-          .contains("Orders in a dashboard");
-        // 4. Consequently, "Everything else" should now also be visible
-        cy.findByText("Everything else");
-      });
-
-      it.skip("should let a user select all items using checkbox (metabase#14705)", () => {
-        cy.visit("/collection/root");
-        cy.findByText("Orders")
-          .closest("a")
-          .within(() => {
-            cy.icon("table").trigger("mouseover");
-            cy.findByRole("checkbox")
-              .should("be.visible")
-              .click();
-          });
-
-        cy.findByText("1 item selected").should("be.visible");
-        cy.icon("dash").click();
-        cy.icon("dash").should("not.exist");
-        cy.findByText("4 items selected");
-      });
-    });
-
     // [quarantine]: cannot run tests that rely on email setup in CI (yet)
     describe.skip("a new pulse", () => {
       it("should be in the root collection", () => {
@@ -540,6 +475,23 @@ describe("scenarios > collection_defaults", () => {
       cy.findByText("Everything Else");
       cy.findByText("Second Collection").should("not.exist");
       cy.findByText("First Collection");
+    });
+
+    it.skip("should let a user select all items using checkbox (metabase#14705)", () => {
+      cy.visit("/collection/root");
+      cy.findByText("Orders")
+        .closest("a")
+        .within(() => {
+          cy.icon("table").trigger("mouseover");
+          cy.findByRole("checkbox")
+            .should("be.visible")
+            .click();
+        });
+
+      cy.findByText("1 item selected").should("be.visible");
+      cy.icon("dash").click();
+      cy.icon("dash").should("not.exist");
+      cy.findByText("4 items selected");
     });
   });
 });
