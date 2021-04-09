@@ -156,6 +156,21 @@
                       :dimension    [:field-id (mt/id :checkins :date)]
                       :default      "past5days"
                       :widget-type  :date/all-options}
+                     nil)))))
+  (testing "Make sure nil values result in no value"
+    (is (= {:field (map->FieldInstance
+                    {:name         "DATE"
+                     :parent_id    nil
+                     :table_id     (mt/id :checkins)
+                     :base_type    :type/Date
+                     :special_type nil})
+            :value i/no-value}
+           (into {} (#'values/parse-tag
+                     {:name         "checkin_date"
+                      :display-name "Checkin Date"
+                      :type         :dimension
+                      :dimension    [:field-id (mt/id :checkins :date)]
+                      :widget-type  :date/all-options}
                      nil))))))
 
 (deftest field-filter-errors-test
@@ -199,7 +214,7 @@
                                 "\"PUBLIC\".\"VENUES\".\"PRICE\" AS \"PRICE\" "
                                 "FROM \"PUBLIC\".\"VENUES\" "
                                 "WHERE \"PUBLIC\".\"VENUES\".\"PRICE\" < 3 "
-                                "LIMIT 1048576")]
+                                "LIMIT 1048575")]
           (mt/with-temp Card [card {:dataset_query mbql-query}]
             (is (= (i/->ReferencedCardQuery (:id card) expected-sql)
                    (#'values/value-for-tag

@@ -2,6 +2,8 @@
 
 import d3 from "d3";
 import moment from "moment";
+import { getIn } from "icepick";
+import _ from "underscore";
 
 import { formatValue } from "metabase/lib/formatting";
 
@@ -21,9 +23,10 @@ export function getClickHoverObject(
     event,
     element,
     settings,
+    groups,
   },
 ) {
-  let { cols } = series[0].data;
+  let { cols } = series[seriesIndex].data;
   const { card } = series[seriesIndex];
 
   const isMultiseries = series.length > 1;
@@ -31,14 +34,14 @@ export function getClickHoverObject(
   const isBar = classList.includes("bar");
   const isSingleSeriesBar = isBar && !isMultiseries;
 
-  // always format the second column as the series name?
   function getColumnDisplayName(col) {
+    const title = getIn(settings, ["series_settings", col.name, "title"]);
     // don't replace with series title for breakout multiseries since the series title is shown in the breakout value
-    if (col === cols[1] && !isBreakoutMultiseries && seriesTitle) {
-      return seriesTitle;
-    } else {
-      return getFriendlyName(col);
+    if (!isBreakoutMultiseries && title) {
+      return title;
     }
+
+    return getFriendlyName(col);
   }
 
   let data = [];
@@ -88,13 +91,30 @@ export function getClickHoverObject(
       ([x]) => key === x || (moment.isMoment(key) && key.isSame(x)),
     );
 
+    const xIndex = _.findIndex(
+      groups[0][0].all(),
+      groupedRow =>
+        key === groupedRow.key ||
+        (moment.isMoment(groupedRow.key) && key.isSame(groupedRow.key)),
+    );
+
+    const groupByColumnName = {};
+    series.forEach((s, index) => {
+      const seriesGroup = groups[index];
+
+      if (seriesGroup) {
+        groupByColumnName[s.card._seriesKey] = seriesGroup[0];
+      }
+    });
+
     // try to get row from _origin but fall back to the row we already have
     const rawRow = (row && row._origin && row._origin.row) || row;
 
     // Loop over *all* of the columns and create the new array
     if (rawRow) {
       data = rawCols.map((col, i) => {
-        if (isNormalized && cols[1].field_ref === col.field_ref) {
+        const isSeriesValueColumn = _.isEqual(cols[1].field_ref, col.field_ref);
+        if (isNormalized && isSeriesValueColumn) {
           return {
             key: getColumnDisplayName(cols[1]),
             value: formatValue(d.data.value, {
@@ -105,9 +125,17 @@ export function getClickHoverObject(
             col: col,
           };
         }
+
+        const columnGroup = groupByColumnName[col.name];
+        const groupedRow = columnGroup ? columnGroup.all()[xIndex] : null;
+
+        const value = formatNull(
+          groupedRow != null ? groupedRow.value : rawRow[i],
+        );
+
         return {
           key: getColumnDisplayName(col),
-          value: formatNull(rawRow[i]),
+          value,
           col: col,
         };
       });
@@ -193,6 +221,7 @@ export function setupTooltips(
   datas,
   chart,
   { isBrushing },
+  groups,
 ) {
   const stacked = isStacked(settings, datas);
   const normalized = isNormalized(settings, datas);
@@ -224,6 +253,7 @@ export function setupTooltips(
       event: d3.event,
       element: target,
       settings,
+      groups,
     });
   };
 
