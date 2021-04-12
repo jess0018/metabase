@@ -21,11 +21,13 @@ const NOT_AUTHORIZED_TRIGGERS = [
 init(reducers, getRoutes, store => {
   // received a 401 response
   api.on("401", url => {
+    Cookies.remove(".AspNetCore.Cookies");
+    Cookies.remove("metabase.SESSION");
     if (url.indexOf("/api/user/current") >= 0) {
       return;
     }
     store.dispatch(clearCurrentUser());
-    store.dispatch(push("/auth/login"));
+    store.dispatch(push("/"));
   });
 
   // received a 403 response
