@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { t } from "ttag";
@@ -13,7 +12,7 @@ import DateOperatorSelector from "../DateOperatorSelector";
 import DateUnitSelector from "../DateUnitSelector";
 import Calendar from "metabase/components/Calendar";
 
-import * as FieldRef from "metabase/lib/query/field_ref";
+import { FieldDimension } from "metabase-lib/lib/Dimension";
 
 import type {
   FieldFilter,
@@ -146,33 +145,37 @@ const getDate = value => {
 const hasTime = value =>
   typeof value === "string" && /T\d{2}:\d{2}:\d{2}$/.test(value);
 
+/**
+ * Returns MBQL :field clause with temporal bucketing applied.
+ * @deprecated -- just use FieldDimension to do this stuff.
+ */
 function getDateTimeField(
   field: ConcreteField,
   bucketing: ?DatetimeUnit,
 ): ConcreteField {
-  const target = getDateTimeFieldTarget(field);
-  if (bucketing) {
-    // $FlowFixMe
-    return ["datetime-field", target, bucketing];
-  } else {
-    return target;
+  const dimension = FieldDimension.parseMBQLOrWarn(field);
+  if (dimension) {
+    if (bucketing) {
+      return dimension.withTemporalUnit(bucketing).mbql();
+    } else {
+      return dimension.withoutTemporalBucketing().mbql();
+    }
   }
+  return field;
 }
 
 export function getDateTimeFieldTarget(
   field: ConcreteField,
 ): LocalFieldReference | ForeignFieldReference | ExpressionReference {
-  if (FieldRef.isDatetimeField(field)) {
-    // $FlowFixMe:
-    return (field[1]: // $FlowFixMe:
-    LocalFieldReference | ForeignFieldReference | ExpressionReference);
+  const dimension = FieldDimension.parseMBQLOrWarn(field);
+  if (dimension && dimension.temporalUnit()) {
+    return dimension.withoutTemporalBucketing().mbql();
   } else {
-    // $FlowFixMe
     return field;
   }
 }
 
-// wraps values in "datetime-field" is any of them have a time component
+// add temporal-unit to fields if any of them have a time component
 function getDateTimeFieldAndValues(
   filter: FieldFilter,
   count: number,
@@ -182,7 +185,6 @@ function getDateTimeFieldAndValues(
     .map(value => value && getDate(value));
   const bucketing = _.any(values, hasTime) ? "minute" : null;
   const field = getDateTimeField(filter[1], bucketing);
-  // $FlowFixMe
   return [field, ...values];
 }
 
@@ -226,7 +228,6 @@ export const DATE_OPERATORS: Operator[] = [
       getOptions(filter),
     ],
     test: ([op, field, value]) =>
-      // $FlowFixMe
       (op === "time-interval" && value < 0) || Object.is(value, -0),
     widget: PreviousPicker,
     options: { "include-current": true },
@@ -241,7 +242,6 @@ export const DATE_OPERATORS: Operator[] = [
       getUnit(filter),
       getOptions(filter),
     ],
-    // $FlowFixMe
     test: ([op, field, value]) => op === "time-interval" && value >= 0,
     widget: NextPicker,
     options: { "include-current": true },
@@ -343,7 +343,7 @@ export default class DatePicker extends Component {
     operators: PropTypes.array,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     let operators = this.props.operators || DATE_OPERATORS;
     if (!this.props.hideEmptinessOperators) {
       operators = operators.concat(EMPTINESS_OPERATORS);

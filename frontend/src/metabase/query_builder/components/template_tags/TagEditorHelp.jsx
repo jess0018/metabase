@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { t, jt } from "ttag";
 import Code from "metabase/components/Code";
@@ -298,7 +299,7 @@ const TagEditorHelp = ({
         <ExternalLink
           href={MetabaseSettings.docsUrl("users-guide/13-sql-parameters")}
           target="_blank"
-          data-metabase-event="QueryBuilder;Template Tag Documentation Click"
+          dataMetabaseEvent="QueryBuilder;Template Tag Documentation Click"
         >{t`Read the full documentation`}</ExternalLink>
       </p>
     </div>

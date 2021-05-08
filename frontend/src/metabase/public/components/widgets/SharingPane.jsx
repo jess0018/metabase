@@ -1,5 +1,3 @@
-/* @flow */
-
 import React, { Component } from "react";
 import { t } from "ttag";
 import Icon from "metabase/components/Icon";
@@ -119,6 +117,7 @@ export default class SharingPane extends Component {
               <div className="mt1">
                 {extensions.map(extension => (
                   <span
+                    key={extension}
                     className={cx(
                       "cursor-pointer text-brand-hover text-bold text-uppercase",
                       extension === this.state.extension

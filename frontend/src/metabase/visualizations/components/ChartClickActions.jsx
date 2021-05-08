@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import { connect } from "react-redux";
 
@@ -70,7 +69,6 @@ const SECTIONS = {
 };
 // give them indexes so we can sort the sections by the above ordering (JS objects are ordered)
 Object.values(SECTIONS).map((section, index) => {
-  // $FlowFixMe
   section.index = index;
 });
 
@@ -103,7 +101,6 @@ export default class ChartClickActions extends Component {
   };
 
   handleClickAction = (action: ClickAction) => {
-    // $FlowFixMe: dispatch provided by @connect
     const { dispatch, onChangeCardAndRun } = this.props;
     if (action.popover) {
       MetabaseAnalytics.trackEvent(
@@ -210,6 +207,7 @@ export default class ChartClickActions extends Component {
           <div className="text-bold px2 pt2 pb1">
             {sections.map(([key, actions]) => (
               <div
+                key={key}
                 className={cx(
                   "pb1",
                   { pb2: SECTIONS[key].icon === "bolt" },
@@ -239,7 +237,6 @@ export default class ChartClickActions extends Component {
                 )}
 
                 <div
-                  key={key}
                   className={cx(
                     "flex",
                     {
@@ -254,7 +251,7 @@ export default class ChartClickActions extends Component {
                 >
                   {actions.map((action, index) => (
                     <ChartClickAction
-                      index={index}
+                      key={index}
                       action={action}
                       isLastItem={index === actions.length - 1}
                       handleClickAction={this.handleClickAction}
@@ -297,7 +294,7 @@ export const ChartClickAction = ({
   // NOTE: Tom Robinson 4/16/2018: disabling <Link> for `question` click actions
   // for now since on dashboards currently they need to go through
   // navigateToNewCardFromDashboard to merge in parameters.,
-  // Also need to sort out proper logic in QueryBuilder's componentWillReceiveProps
+  // Also need to sort out proper logic in QueryBuilder's UNSAFE_componentWillReceiveProps
   // if (action.question) {
   //   return (
   //     <Link to={action.question().getUrl()} className={className}>

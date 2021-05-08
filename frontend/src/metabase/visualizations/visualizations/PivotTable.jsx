@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import { t, jt } from "ttag";
 import cx from "classnames";
@@ -408,6 +409,7 @@ export default class PivotTable extends Component {
                 >
                   {rowIndexes.map((rowIndex, index) => (
                     <Cell
+                      key={rowIndex}
                       value={this.getColumnTitle(rowIndex)}
                       style={{ width: LEFT_HEADER_CELL_WIDTH }}
                       icon={

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { t, jt } from "ttag";
@@ -8,6 +9,7 @@ import SettingsSetting from "./SettingsSetting";
 import HostingInfoLink from "metabase/admin/settings/components/widgets/HostingInfoLink";
 import Icon from "metabase/components/Icon";
 import Text from "metabase/components/type/Text";
+import ExternalLink from "metabase/components/ExternalLink";
 
 export default class SettingsUpdatesForm extends Component {
   static propTypes = {
@@ -40,16 +42,20 @@ export default class SettingsUpdatesForm extends Component {
               {jt`Metabase ${formatVersion(latestVersion)} is available.`}{" "}
               {jt`You're running ${formatVersion(currentVersion)}`}
             </span>
-            <a
-              data-metabase-event={
+            <ExternalLink
+              dataMetabaseEvent={
                 "Updates Settings; Update link clicked; " + latestVersion
               }
               className="Button Button--white Button--medium borderless"
-              href="https://metabase.com/start/"
+              href={
+                "https://www.metabase.com/docs/" +
+                latestVersion +
+                "/operations-guide/upgrading-metabase.html"
+              }
               target="_blank"
             >
               {t`Update`}
-            </a>
+            </ExternalLink>
           </div>
 
           <div
@@ -61,7 +67,9 @@ export default class SettingsUpdatesForm extends Component {
             <Version version={versionInfo.latest} />
 
             {versionInfo.older &&
-              versionInfo.older.map(version => <Version version={version} />)}
+              versionInfo.older.map((version, index) => (
+                <Version key={index} version={version} />
+              ))}
           </div>
 
           {!MetabaseSettings.isHosted() && <HostingCTA />}
@@ -69,7 +77,8 @@ export default class SettingsUpdatesForm extends Component {
       );
     } else {
       return (
-        <div>{t`Sorry, we were unable to check for updates at this time.`}</div>
+        <div>{t`Sorry, we were unable to check for updates at this time. Last successful check was
+         ${MetabaseSettings.versionInfoLastChecked()}.`}</div>
       );
     }
   }
@@ -112,8 +121,8 @@ function Version({ version }) {
       </h3>
       <ul style={{ listStyleType: "disc", listStylePosition: "inside" }}>
         {version.highlights &&
-          version.highlights.map(highlight => (
-            <li style={{ lineHeight: "1.5" }} className="pl1">
+          version.highlights.map((highlight, index) => (
+            <li key={index} style={{ lineHeight: "1.5" }} className="pl1">
               {highlight}
             </li>
           ))}

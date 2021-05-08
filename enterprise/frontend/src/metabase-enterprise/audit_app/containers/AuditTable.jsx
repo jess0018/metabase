@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import React from "react";
 
 import "./AuditTableVisualization";
@@ -56,7 +55,6 @@ export default class AuditTable extends React.Component {
   };
 
   render() {
-    // $FlowFixMe: metadata, and onChangeLocation provided by @connect
     const { metadata, table, onChangeLocation, pageSize } = this.props;
     const { page, hasMorePages } = this.state;
 

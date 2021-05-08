@@ -1,30 +1,26 @@
 import {
-  signInAsAdmin,
   restore,
   openOrdersTable,
   version,
   popover,
-  itOpenSourceOnly,
   setupDummySMTP,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
 describe("scenarios > admin > settings", () => {
   beforeEach(() => {
     restore();
-    signInAsAdmin();
+    cy.signInAsAdmin();
   });
 
-  itOpenSourceOnly(
-    "should prompt admin to migrate to the hosted instance",
-    () => {
-      cy.visit("/admin/settings/setup");
-      cy.findByText("Have your server maintained for you.");
-      cy.findByText("Migrate to Metabase Cloud.");
-      cy.findAllByRole("link", { name: "Learn more" })
-        .should("have.attr", "href")
-        .and("include", "/migrate/");
-    },
-  );
+  it("should prompt admin to migrate to the hosted instance", () => {
+    cy.skipOn(!!Cypress.env("HAS_ENTERPRISE_TOKEN"));
+    cy.visit("/admin/settings/setup");
+    cy.findByText("Have your server maintained for you.");
+    cy.findByText("Migrate to Metabase Cloud.");
+    cy.findAllByRole("link", { name: "Learn more" })
+      .should("have.attr", "href")
+      .and("include", "/migrate/");
+  });
 
   it("should surface an error when validation for any field fails (metabase#4506)", () => {
     const BASE_URL = Cypress.config().baseUrl;
@@ -51,7 +47,7 @@ describe("scenarios > admin > settings", () => {
 
     // NOTE: This test is not concerned with HOW we style the error message - only that there is one.
     //       If we update UI in the future (for example: we show an error within a popup/modal), the test in current form could fail.
-    cy.log("**Making sure we display an error message in UI**");
+    cy.log("Making sure we display an error message in UI");
     // Same reasoning for regex as above
     cy.get(".SaveStatus").contains(/^Error: Invalid site URL/);
   });
@@ -298,6 +294,49 @@ describe("scenarios > admin > settings", () => {
     });
   }
 
+  it("'General' admin settings should handle setup via `MB_SITE_ULR` environment variable (metabase#14900)", () => {
+    cy.server();
+    // 1. Get the array of ALL available settings
+    cy.request("GET", "/api/setting").then(({ body }) => {
+      // 2. Create a stubbed version of that array by passing modified "site-url" settings
+      const STUBBED_BODY = body.map(setting => {
+        if (setting.key === "site-url") {
+          const STUBBED_SITE_URL = Object.assign({}, setting, {
+            is_env_setting: true,
+            value: null,
+          });
+
+          return STUBBED_SITE_URL;
+        }
+        return setting;
+      });
+
+      // 3. Stub the whole response
+      cy.route("GET", "/api/setting", STUBBED_BODY).as("appSettings");
+    });
+    cy.visit("/admin/settings/general");
+
+    cy.wait("@appSettings");
+    cy.findByText("We're a little lost...").should("not.exist");
+    cy.findByText(/Site name/i);
+    cy.findByText(/Site URL/i);
+  });
+
+  it("should display the order of the settings items consistently between OSS/EE versions (metabase#15441)", () => {
+    const lastItem = Cypress.env("HAS_ENTERPRISE_TOKEN")
+      ? "Whitelabel"
+      : "Caching";
+
+    cy.visit("/admin/settings/setup");
+    cy.get(".AdminList .AdminList-item")
+      .as("settingsOptions")
+      .first()
+      .contains("Setup");
+    cy.get("@settingsOptions")
+      .last()
+      .contains(lastItem);
+  });
+
   describe(" > email settings", () => {
     it("should be able to save email settings", () => {
       cy.visit("/admin/settings/email");
@@ -329,6 +368,26 @@ describe("scenarios > admin > settings", () => {
       cy.findByText("Sorry, something went wrong. Please try again.");
     });
 
+    it("should send a test email for a valid SMTP configuration", () => {
+      // We must clear maildev inbox before each run - this will be extracted and automated
+      cy.request("DELETE", "http://localhost:80/email/all");
+      cy.request("PUT", "/api/setting", {
+        "email-smtp-host": "localhost",
+        "email-smtp-port": "25",
+        "email-smtp-username": "admin",
+        "email-smtp-password": "admin",
+        "email-smtp-security": "none",
+        "email-from-address": "mailer@metabase.test",
+      });
+      cy.visit("/admin/settings/email");
+      cy.findByText("Send test email").click();
+      cy.findByText("Sent!");
+      cy.request("GET", "http://localhost:80/email").then(({ body }) => {
+        const emailBody = body[0].text;
+        expect(emailBody).to.include("Your Metabase emails are working");
+      });
+    });
+
     it("should be able to clear email settings", () => {
       cy.visit("/admin/settings/email");
       cy.findByText("Clear").click();
@@ -340,7 +399,7 @@ describe("scenarios > admin > settings", () => {
       );
     });
 
-    it.skip("should not offer to save email changes when there aren't any (metabase#14749)", () => {
+    it("should not offer to save email changes when there aren't any (metabase#14749)", () => {
       // Make sure some settings are already there
       setupDummySMTP();
 

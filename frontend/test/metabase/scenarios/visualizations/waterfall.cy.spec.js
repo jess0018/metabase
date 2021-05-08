@@ -1,13 +1,16 @@
 import {
   openOrdersTable,
-  signInAsNormalUser,
   restore,
-} from "__support__/cypress";
+  visitQuestionAdhoc,
+} from "__support__/e2e/cypress";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
+
+const { ORDERS, ORDERS_ID } = SAMPLE_DATASET;
 
 describe("scenarios > visualizations > waterfall", () => {
   beforeEach(() => {
     restore();
-    signInAsNormalUser();
+    cy.signInAsNormalUser();
   });
 
   function verifyWaterfallRendering(xLabel = null, yLabel = null) {
@@ -43,7 +46,7 @@ describe("scenarios > visualizations > waterfall", () => {
     );
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.contains("Visualization").click();
-    cy.get(".Icon-waterfall").click();
+    cy.icon("waterfall").click();
 
     verifyWaterfallRendering("PRODUCT", "PROFIT");
   });
@@ -56,7 +59,7 @@ describe("scenarios > visualizations > waterfall", () => {
     );
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.contains("Visualization").click();
-    cy.get(".Icon-waterfall").click();
+    cy.icon("waterfall").click();
 
     cy.contains("Select a field").click();
     cy.get(".List-item")
@@ -77,17 +80,15 @@ describe("scenarios > visualizations > waterfall", () => {
     cy.findByText("Pick a column to group by").click();
     cy.findByText("Created At").click();
     cy.findByText("Filter").click();
-    cy.findByText("Created At").click();
-    cy.get("input[placeholder='30']")
-      .clear()
-      .type("12")
+    cy.findByText("Custom Expression").click();
+    cy.get("[contenteditable=true]")
+      .type("between([Created At], '2016-01-01', '2016-08-01')")
       .blur();
-    cy.findByText("Days").click();
-    cy.findByText("Months").click();
-    cy.findByText("Add filter").click();
+    cy.findByRole("button", { name: "Done" }).click();
+
     cy.findByText("Visualize").click();
     cy.contains("Visualization").click();
-    cy.get(".Icon-waterfall").click();
+    cy.icon("waterfall").click();
 
     verifyWaterfallRendering("Created At", "Count");
   });
@@ -101,23 +102,50 @@ describe("scenarios > visualizations > waterfall", () => {
 
     cy.findByText("Visualize").click();
     cy.contains("Visualization").click();
-    cy.get(".Icon-waterfall").click();
+    cy.icon("waterfall").click();
 
     cy.get(".Visualization .axis.x").within(() => {
       cy.findByText("Total").should("not.exist");
     });
   });
 
+  it.skip("should not be enabled for multi-series questions (metabase#15152)", () => {
+    cy.server();
+    cy.route("POST", "/api/dataset").as("dataset");
+
+    visitQuestionAdhoc({
+      dataset_query: {
+        type: "query",
+        query: {
+          "source-table": ORDERS_ID,
+          aggregation: [["count"], ["sum", ["field-id", ORDERS.TOTAL]]],
+          breakout: [
+            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "year"],
+          ],
+        },
+        database: 1,
+      },
+      display: "line",
+    });
+
+    cy.wait("@dataset");
+    cy.findByText("Visualization").click();
+
+    cy.findByText("Waterfall")
+      .parent()
+      .should("not.have.css", "opacity", "1");
+  });
+
   describe("scenarios > visualizations > waterfall settings", () => {
     beforeEach(() => {
       restore();
-      signInAsNormalUser();
+      cy.signInAsNormalUser();
       cy.visit("/question/new");
       cy.contains("Native query").click();
       cy.get(".ace_content").type("select 'A' as X, -4.56 as Y");
       cy.get(".NativeQueryEditor .Icon-play").click();
       cy.contains("Visualization").click();
-      cy.get(".Icon-waterfall").click();
+      cy.icon("waterfall").click();
     });
 
     it("should have increase, decrease, and total color options", () => {

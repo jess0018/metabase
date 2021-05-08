@@ -12,7 +12,6 @@
             [metabase.driver.sql-jdbc.sync :as sql-jdbc.sync]
             [metabase.driver.sql.parameters.substitution :as params.substitution]
             [metabase.driver.sql.query-processor :as sql.qp]
-            [metabase.query-processor.timezone :as qp.timezone]
             [metabase.util.date-2 :as u.date]
             [metabase.util.honeysql-extensions :as hx]
             [schema.core :as s])
@@ -216,15 +215,15 @@
   [_ _ expr]
   (->datetime expr (hx/literal "unixepoch")))
 
-(defmethod sql.qp/cast-temporal-string [:sqlite :type/ISO8601DateTimeString]
+(defmethod sql.qp/cast-temporal-string [:sqlite :Coercion/ISO8601->DateTime]
   [_driver _semantic_type expr]
   (->datetime expr))
 
-(defmethod sql.qp/cast-temporal-string [:sqlite :type/ISO8601DateString]
+(defmethod sql.qp/cast-temporal-string [:sqlite :Coercion/ISO8601->Date]
   [_driver _semantic_type expr]
   (->date expr))
 
-(defmethod sql.qp/cast-temporal-string [:sqlite :type/ISO8601TimeString]
+(defmethod sql.qp/cast-temporal-string [:sqlite :Coercion/ISO8601->Time]
   [_driver _semantic_type expr]
   (->time expr))
 
@@ -337,7 +336,7 @@
 ;; SQLite's JDBC driver is fussy and won't let you change connections to read-only after you create them
 (defmethod sql-jdbc.execute/connection-with-timezone :sqlite
   [driver database ^String timezone-id]
-  (let [conn (.getConnection (sql-jdbc.execute/datasource database))]
+  (let [conn (.getConnection (sql-jdbc.execute/datasource-with-diagnostic-info! driver database))]
     (try
       (sql-jdbc.execute/set-best-transaction-level! driver conn)
       conn
@@ -369,4 +368,4 @@
         (t/local-date t))
       (catch Throwable _
         (when-let [s (.getString rs i)]
-          (u.date/parse s (qp.timezone/results-timezone-id)))))))
+          (u.date/parse s))))))

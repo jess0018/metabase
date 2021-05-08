@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Box } from "grid-styled";
 import _ from "underscore";
@@ -111,6 +112,8 @@ export default class CollectionContent extends React.Component {
       selection,
       onToggleSelected,
       location,
+
+      scrollElement,
     } = this.props;
     const { selectedItems, selectedAction } = this.state;
 
@@ -156,6 +159,7 @@ export default class CollectionContent extends React.Component {
             />
           )}
           <ItemList
+            scrollElement={scrollElement}
             items={unpinnedItems}
             empty={unpinned.length === 0}
             showFilters={showFilters}
@@ -179,6 +183,8 @@ export default class CollectionContent extends React.Component {
         </Box>
         <BulkActions
           selected={selected}
+          onSelectAll={this.props.onSelectAll}
+          onSelectNone={this.props.onSelectNone}
           handleBulkArchive={this.handleBulkArchive}
           handleBulkMoveStart={this.handleBulkMoveStart}
           handleBulkMove={this.handleBulkMove}

@@ -1,6 +1,6 @@
-import { signInAsAdmin, signOut, restore, popover } from "__support__/cypress";
+import { restore, popover } from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, PEOPLE } = SAMPLE_DATASET;
 
@@ -21,7 +21,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
 
   beforeEach(() => {
     restore();
-    signInAsAdmin();
+    cy.signInAsAdmin();
 
     cy.request("POST", `/api/field/${ORDERS.USER_ID}/dimension`, {
       type: "external",
@@ -55,7 +55,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
     it.skip("should be hideable", () => {
       // Check viewable
       cy.visit("/dashboard/2");
-      cy.get(".Icon-share").click();
+      cy.icon("share").click();
       cy.findByText("Embed this dashboard in an application").click();
 
       cy.findByText("Parameters");
@@ -74,7 +74,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
   });
 
   describe("private question", () => {
-    beforeEach(signInAsAdmin);
+    beforeEach(cy.signInAsAdmin);
 
     sharedParametersTests(() => {
       cy.visit(`/question/${questionId}`);
@@ -90,7 +90,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
       cy.request("POST", `/api/card/${questionId}/public_link`).then(
         res => (uuid = res.body.uuid),
       );
-      signOut();
+      cy.signOut();
     });
 
     sharedParametersTests(() => {
@@ -112,7 +112,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
         },
         enable_embedding: true,
       });
-      signOut();
+      cy.signOut();
     });
 
     sharedParametersTests(() => {
@@ -124,7 +124,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
   });
 
   describe("private dashboard", () => {
-    beforeEach(signInAsAdmin);
+    beforeEach(cy.signInAsAdmin);
 
     sharedParametersTests(() => {
       cy.visit(`/dashboard/${dashboardId}`);
@@ -140,7 +140,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
       cy.request("POST", `/api/dashboard/${dashboardId}/public_link`).then(
         res => (uuid = res.body.uuid),
       );
-      signOut();
+      cy.signOut();
     });
 
     sharedParametersTests(() => {
@@ -162,7 +162,7 @@ describe("scenarios > dashboard > parameters-embedded", () => {
         },
         enable_embedding: true,
       });
-      signOut();
+      cy.signOut();
     });
 
     sharedParametersTests(() => {
@@ -230,7 +230,7 @@ const createQuestion = () =>
             name: "id",
             display_name: "Id",
             type: "dimension",
-            dimension: ["field-id", PEOPLE.ID],
+            dimension: ["field", PEOPLE.ID, null],
             "widget-type": "id",
             default: null,
           },
@@ -239,7 +239,7 @@ const createQuestion = () =>
             name: "name",
             display_name: "Name",
             type: "dimension",
-            dimension: ["field-id", PEOPLE.NAME],
+            dimension: ["field", PEOPLE.NAME, null],
             "widget-type": "category",
             default: null,
           },
@@ -248,7 +248,7 @@ const createQuestion = () =>
             name: "source",
             display_name: "Source",
             type: "dimension",
-            dimension: ["field-id", PEOPLE.SOURCE],
+            dimension: ["field", PEOPLE.SOURCE, null],
             "widget-type": "category",
             default: null,
           },
@@ -257,7 +257,7 @@ const createQuestion = () =>
             name: "user_id",
             display_name: "User",
             type: "dimension",
-            dimension: ["field-id", ORDERS.USER_ID],
+            dimension: ["field", ORDERS.USER_ID, null],
             "widget-type": "id",
             default: null,
           },

@@ -1,9 +1,8 @@
 import {
-  signIn,
   restore,
   popover,
   selectDashboardFilter,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
 function filterDashboard(suggests = true) {
   cy.visit("/dashboard/1");
@@ -11,15 +10,15 @@ function filterDashboard(suggests = true) {
 
   // We should get a suggested response and be able to click it if we're an admin
   if (suggests) {
-    cy.contains("Category").type("Aero");
+    cy.contains("Text").type("Aero");
     cy.contains("Aerodynamic").click();
   } else {
-    cy.contains("Category").type("Aerodynamic Bronze Hat");
+    cy.contains("Text").type("Aerodynamic Bronze Hat");
     cy.wait("@search").should(xhr => {
       expect(xhr.status).to.equal(403);
     });
   }
-  cy.contains("Add filter").click();
+  cy.contains("Add filter").click({ force: true });
   cy.contains("Aerodynamic Bronze Hat");
   cy.contains(/Rows \d-\d of 96/);
 }
@@ -27,16 +26,20 @@ function filterDashboard(suggests = true) {
 describe("support > permissions (metabase#8472)", () => {
   beforeEach(() => {
     restore();
-    signIn("admin");
+    cy.signInAsAdmin();
 
     // Setup a dashboard with a text filter
     cy.visit("/dashboard/1");
     // click pencil icon to edit
-    cy.get(".Icon-pencil").click();
+    cy.icon("pencil").click();
 
-    cy.get(".Icon-filter").click();
+    cy.icon("filter").click();
     popover()
-      .contains("Other Categories")
+      .contains("Text or Category")
+      .click();
+
+    popover()
+      .contains("Dropdown")
       .click();
 
     // Filter the first card by product category
@@ -58,7 +61,7 @@ describe("support > permissions (metabase#8472)", () => {
       "/api/dashboard/1/params/*/search/Aerodynamic Bronze Hat",
     ).as("search");
 
-    signIn("nodata");
+    cy.signIn("nodata");
     filterDashboard(false);
   });
 });

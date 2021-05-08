@@ -1,5 +1,3 @@
-/* @flow */
-
 import React, { Component } from "react";
 
 import Icon from "metabase/components/Icon";
@@ -45,7 +43,7 @@ export default class PublicLinksListing extends Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.load();
   }
 
@@ -96,7 +94,7 @@ export default class PublicLinksListing extends Component {
             <tbody>
               {list &&
                 list.map(link => (
-                  <tr>
+                  <tr key={link.id}>
                     <td>
                       <Link
                         to={getUrl(link)}

@@ -1,5 +1,6 @@
-/* @flow */
 import { getIn } from "icepick";
+
+import * as React from "react";
 
 import ChartSettingInput from "metabase/visualizations/components/settings/ChartSettingInput";
 import ChartSettingInputGroup from "metabase/visualizations/components/settings/ChartSettingInputGroup";
@@ -44,7 +45,7 @@ export type SettingDef = {
   getDefault?: (object: any, settings: Settings, extra: ExtraProps) => any,
   getValue?: (object: any, settings: Settings, extra: ExtraProps) => any,
   isValid?: (object: any, settings: Settings, extra: ExtraProps) => boolean,
-  widget?: string | React$Component<any, any, any>,
+  widget?: string | React.Component,
   writeDependencies?: SettingId[],
   readDependencies?: SettingId[],
 };
@@ -56,8 +57,7 @@ export type WidgetDef = {
   hidden: boolean,
   disabled: boolean,
   props: { [key: string]: any },
-  // $FlowFixMe
-  widget?: React$Component<any, any, any>,
+  widget?: React.Component,
   onChange: (value: any) => void,
 };
 

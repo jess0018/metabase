@@ -348,8 +348,9 @@ export default class AccordionList extends Component {
             ...style,
           }}
         >
-          {rows.map(row => (
+          {rows.map((row, index) => (
             <AccordionListCell
+              key={index}
               {...this.props}
               row={row}
               sections={sections}
@@ -391,6 +392,7 @@ export default class AccordionList extends Component {
         ref={list => (this._list = list)}
         className={className}
         style={{ ...defaultListStyle, ...style }}
+        containerStyle={{ pointerEvents: "auto" }}
         width={width}
         height={height}
         rowCount={rows.length}
@@ -519,9 +521,10 @@ const AccordionListCell = ({
   } else if (type === "search") {
     content = (
       <ListSearchField
+        hasClearButton
         className="bg-white m1"
         onChange={onChangeSearchText}
-        searchText={searchText}
+        value={searchText}
         placeholder={searchPlaceholder}
         autoFocus
       />

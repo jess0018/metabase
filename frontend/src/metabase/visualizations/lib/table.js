@@ -1,5 +1,3 @@
-/* @flow */
-
 import type { DatasetData, Column } from "metabase-types/types/Dataset";
 import type { ClickObject } from "metabase-types/types/Visualization";
 import type { VisualizationSettings } from "metabase-types/types/Card";
@@ -22,14 +20,12 @@ export function getTableCellClickedObject(
   if (isPivoted) {
     // if it's a pivot table, the first column is
     if (columnIndex === 0) {
-      // $FlowFixMe: _dimension
       return row._dimension;
     } else {
       return {
         value,
         column,
         settings,
-        // $FlowFixMe: _dimension
         dimensions: [row._dimension, column._dimension],
         data: dataForClick,
       };
@@ -65,7 +61,6 @@ export function getTableHeaderClickedObject(
   if (isPivoted) {
     // if it's a pivot table, the first column is
     if (columnIndex >= 0 && column) {
-      // $FlowFixMe: _dimension
       return column._dimension;
     } else {
       return null; // FIXME?
@@ -82,7 +77,6 @@ export function getTableHeaderClickedObject(
 export function isColumnRightAligned(column: Column) {
   // handle remapped columns
   if (column && column.remapped_to_column) {
-    // $FlowFixMe: remapped_to_column
     column = column.remapped_to_column;
   }
   return isNumber(column) || isCoordinate(column);

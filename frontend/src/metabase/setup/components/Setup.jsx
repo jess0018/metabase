@@ -1,6 +1,5 @@
 /* eslint "react/prop-types": "warn" */
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
 import { t } from "ttag";
 import ExternalLink from "metabase/components/ExternalLink";
@@ -31,6 +30,12 @@ export default class Setup extends Component {
     setActiveStep: PropTypes.func.isRequired,
     databaseDetails: PropTypes.object,
   };
+
+  constructor(props) {
+    super(props);
+
+    this.databaseSchedulingStepContainer = React.createRef();
+  }
 
   completeWelcome() {
     this.props.setActiveStep(LANGUAGE_STEP_NUMBER);
@@ -70,17 +75,15 @@ export default class Setup extends Component {
     );
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // If we are entering the scheduling step, we need to scroll to the top of scheduling step container
     if (
       this.props.activeStep !== nextProps.activeStep &&
       nextProps.activeStep === 3
     ) {
       setTimeout(() => {
-        if (this.refs.databaseSchedulingStepContainer) {
-          const node = ReactDOM.findDOMNode(
-            this.refs.databaseSchedulingStepContainer,
-          );
+        if (this.databaseSchedulingStepContainer.current) {
+          const node = this.databaseSchedulingStepContainer.current;
           node && node.scrollIntoView && node.scrollIntoView();
         }
       }, 10);
@@ -144,8 +147,8 @@ export default class Setup extends Component {
                 stepNumber={DATABASE_CONNECTION_STEP_NUMBER}
               />
 
-              {/* Have the ref for scrolling in componentWillReceiveProps */}
-              <div ref="databaseSchedulingStepContainer">
+              {/* Have the ref for scrolling in UNSAFE_componentWillReceiveProps */}
+              <div ref={this.databaseSchedulingStepContainer}>
                 {/* Show db scheduling step only if the user has explicitly set the "Let me choose when Metabase syncs and scans" toggle to true */}
                 {databaseDetails &&
                   databaseDetails.details &&

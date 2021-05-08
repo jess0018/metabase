@@ -1,5 +1,3 @@
-/* @flow weak */
-
 import _ from "underscore";
 import { t } from "ttag";
 import {
@@ -33,21 +31,26 @@ export const UNKNOWN = "UNKNOWN";
 const TYPES = {
   [TEMPORAL]: {
     base: [TYPE.Temporal],
+    effective: [TYPE.Temporal],
     semantic: [TYPE.Temporal],
   },
   [NUMBER]: {
     base: [TYPE.Number],
+    effective: [TYPE.Number],
     semantic: [TYPE.Number],
   },
   [STRING]: {
     base: [TYPE.Text],
+    effective: [TYPE.Text],
     semantic: [TYPE.Text],
   },
   [STRING_LIKE]: {
     base: [TYPE.TextLike],
+    effective: [TYPE.TextLike],
   },
   [BOOLEAN]: {
     base: [TYPE.Boolean],
+    effective: [TYPE.Boolean],
   },
   [COORDINATE]: {
     semantic: [TYPE.Coordinate],
@@ -70,6 +73,7 @@ const TYPES = {
   },
   [CATEGORY]: {
     base: [TYPE.Boolean],
+    effective: [TYPE.Boolean],
     semantic: [TYPE.Category],
     include: [LOCATION],
   },
@@ -86,7 +90,10 @@ export function isFieldType(type, field) {
 
   const typeDefinition = TYPES[type];
   // check to see if it belongs to any of the field types:
-  for (const prop of ["base", "semantic"]) {
+  const props = field.effective_type
+    ? ["effective", "semantic"]
+    : ["base", "semantic"];
+  for (const prop of props) {
     const allowedTypes = typeDefinition[prop];
     if (!allowedTypes) {
       continue;
@@ -155,8 +162,16 @@ export const isEntityName = field =>
 
 export const isAny = col => true;
 
-export const isNumericBaseType = field =>
-  field && isa(field.base_type, TYPE.Number);
+export const isNumericBaseType = field => {
+  if (!field) {
+    return false;
+  }
+  if (field.effective_type) {
+    return isa(field.effective_type, TYPE.Number);
+  } else {
+    return isa(field.base_type, TYPE.Number);
+  }
+};
 
 // ZipCode, ID, etc derive from Number but should not be formatted as numbers
 export const isNumber = field =>
@@ -166,7 +181,16 @@ export const isNumber = field =>
 
 export const isBinnedNumber = field => isNumber(field) && !!field.binning_info;
 
-export const isTime = field => field && isa(field.base_type, TYPE.Time);
+export const isTime = field => {
+  if (!field) {
+    return false;
+  }
+  if (field.effective_type) {
+    return isa(field.effective_type, TYPE.Time);
+  } else {
+    return isa(field.base_type, TYPE.Time);
+  }
+};
 
 export const isAddress = field =>
   field && isa(field.semantic_type, TYPE.Address);
@@ -417,6 +441,10 @@ const FILTER_OPERATORS_BY_TYPE_ORDERED = {
     { name: "!=", verboseName: t`Is not` },
     { name: "is-null", verboseName: t`Is empty` },
     { name: "not-null", verboseName: t`Not empty` },
+    { name: "contains", verboseName: t`Contains` },
+    { name: "does-not-contain", verboseName: t`Does not contain` },
+    { name: "starts-with", verboseName: t`Starts with` },
+    { name: "ends-with", verboseName: t`Ends with` },
   ],
   [COORDINATE]: [
     { name: "=", verboseName: t`Is` },
@@ -445,6 +473,28 @@ const MORE_VERBOSE_NAMES = {
   "less than or equal to": "is less than or equal to",
   "greater than or equal to": "is greater than or equal to",
 };
+
+export function doesOperatorExist(operatorName) {
+  return !!FIELD_FILTER_OPERATORS[operatorName];
+}
+
+export function getOperatorByTypeAndName(type, name) {
+  const typedNamedOperator = _.findWhere(
+    FILTER_OPERATORS_BY_TYPE_ORDERED[type],
+    {
+      name,
+    },
+  );
+  const namedOperator = FIELD_FILTER_OPERATORS[name];
+
+  return (
+    typedNamedOperator && {
+      ...typedNamedOperator,
+      ...namedOperator,
+      numFields: namedOperator.validArgumentsFilters.length,
+    }
+  );
+}
 
 export function getFilterOperators(field, table, selected) {
   const type = getFieldType(field) || UNKNOWN;
@@ -696,4 +746,13 @@ export function getFilterArgumentFormatOptions(filterOperator, index) {
       filterOperator.formatOptions[index]) ||
     {}
   );
+}
+
+export function isEqualsOperator(operator) {
+  return !!operator && operator.name === "=";
+}
+
+export function isFuzzyOperator(operator) {
+  const { name } = operator || {};
+  return !["=", "!="].includes(name);
 }

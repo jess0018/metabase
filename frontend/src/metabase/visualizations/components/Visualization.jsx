@@ -1,5 +1,3 @@
-/* @flow weak */
-
 import React from "react";
 
 import ExplicitSize from "metabase/components/ExplicitSize";
@@ -163,11 +161,11 @@ export default class Visualization extends React.PureComponent {
     },
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.transform(this.props);
   }
 
-  componentWillReceiveProps(newProps) {
+  UNSAFE_componentWillReceiveProps(newProps) {
     if (
       !isSameSeries(newProps.rawSeries, this.props.rawSeries) ||
       !Utils.equals(newProps.settings, this.props.settings)
@@ -199,7 +197,6 @@ export default class Visualization extends React.PureComponent {
   // shouldComponentUpdate(nextProps, nextState) {
   // }
 
-  // $FlowFixMe
   getWarnings(props = this.props, state = this.state) {
     let warnings = state.warnings || [];
     // don't warn about truncated data for table since we show a warning in the row count
@@ -457,7 +454,6 @@ export default class Visualization extends React.PureComponent {
 
     if (!error) {
       noResults = _.every(
-        // $FlowFixMe
         series,
         s => s && s.data && datasetContainsNoResults(s.data),
       );
@@ -585,16 +581,13 @@ export default class Visualization extends React.PureComponent {
             )}
           </div>
         ) : (
-          // $FlowFixMe
           <CardVisualization
             {...this.props}
             // NOTE: CardVisualization class used to target ExplicitSize HOC
             className="CardVisualization flex-full flex-basis-none"
             series={series}
             settings={settings}
-            // $FlowFixMe
             card={series[0].card} // convenience for single-series visualizations
-            // $FlowFixMe
             data={series[0].data} // convenience for single-series visualizations
             hovered={hovered}
             onHoverChange={this.handleHoverChange}

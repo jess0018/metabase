@@ -1,5 +1,3 @@
-/* @flow */
-
 import type { DashCard } from "metabase-types/types/Dashboard";
 
 export const GRID_WIDTH = 18;
@@ -7,6 +5,8 @@ export const GRID_ASPECT_RATIO = 4 / 3;
 export const GRID_MARGIN = 6;
 
 export const DEFAULT_CARD_SIZE = { width: 4, height: 4 };
+
+export const MIN_ROW_HEIGHT = 60;
 
 type DashCardPosition = {
   col: number,

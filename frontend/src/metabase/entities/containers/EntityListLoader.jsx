@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import React from "react";
 import { connect } from "react-redux";
 import _ from "underscore";
@@ -18,7 +17,7 @@ export type Props = {
   debounced?: boolean,
   loadingAndErrorWrapper: boolean,
   selectorName?: string,
-  children: (props: RenderProps) => ?React$Element<any>,
+  children: (props: RenderProps) => ?React.Element,
 };
 
 export type RenderProps = {
@@ -80,10 +79,12 @@ const getMemoizedEntityQuery = createMemoizedSelector(
   const loaded = entityDef.selectors.getLoaded(state, { entityQuery });
   const fetched = entityDef.selectors.getFetched(state, { entityQuery });
   const error = entityDef.selectors.getError(state, { entityQuery });
+  const total = entityDef.selectors.getListTotal(state, { entityQuery });
 
   return {
     entityQuery,
     list: entityDef.selectors[selectorName](state, { entityQuery }),
+    total,
     loading,
     loaded,
     fetched,
@@ -142,11 +143,11 @@ export default class EntityListLoader extends React.Component {
     250,
   );
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchList(this.props, { reload: this.props.reload });
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (!_.isEqual(nextProps.entityQuery, this.props.entityQuery)) {
       // entityQuery changed, reload
       this.fetchList(nextProps, { reload: nextProps.reload });
@@ -159,15 +160,12 @@ export default class EntityListLoader extends React.Component {
   }
 
   renderChildren = () => {
-    // $FlowFixMe: provided by @connect
     let { children, entityDef, wrapped, list, reload, ...props } = this.props; // eslint-disable-line no-unused-vars
 
     if (wrapped) {
-      // $FlowFixMe
       list = this._getWrappedList(this.props);
     }
 
-    // $FlowFixMe: loading and error missing
     return children({
       ..._.omit(props, ...CONSUMED_PROPS),
       list,
@@ -178,16 +176,12 @@ export default class EntityListLoader extends React.Component {
   };
 
   render() {
-    // $FlowFixMe: provided by @connect
     const { allFetched, allError } = this.props;
     const { loadingAndErrorWrapper } = this.props;
     return loadingAndErrorWrapper ? (
-      <LoadingAndErrorWrapper
-        loading={!allFetched}
-        error={allError}
-        children={this.renderChildren}
-        noWrapper
-      />
+      <LoadingAndErrorWrapper loading={!allFetched} error={allError} noWrapper>
+        {this.renderChildren}
+      </LoadingAndErrorWrapper>
     ) : (
       this.renderChildren()
     );

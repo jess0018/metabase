@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import styles from "./RefreshWidget.css";
 
@@ -20,9 +21,14 @@ const OPTIONS = [
 ];
 
 export default class RefreshWidget extends Component {
+  constructor(props) {
+    super(props);
+
+    this.popover = React.createRef();
+  }
   state = { elapsed: null };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const { setRefreshElapsedHook } = this.props;
     if (setRefreshElapsedHook) {
       setRefreshElapsedHook(elapsed => this.setState({ elapsed }));
@@ -45,7 +51,7 @@ export default class RefreshWidget extends Component {
     const remaining = period - elapsed;
     return (
       <PopoverWithTrigger
-        ref="popover"
+        ref={this.popover}
         triggerElement={
           elapsed == null ? (
             <Tooltip tooltip={t`Auto-refresh`}>
@@ -83,7 +89,7 @@ export default class RefreshWidget extends Component {
                 period={option.period}
                 selected={option.period === period}
                 onClick={() => {
-                  this.refs.popover.close();
+                  this.popover.current.close();
                   onChangePeriod(option.period);
                 }}
               />

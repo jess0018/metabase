@@ -1,19 +1,18 @@
 import {
-  signInAsAdmin,
   restore,
   withDatabase,
   visitAlias,
   popover,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATASET;
 
 // [quarantine] - intermittently failing, possibly due to a "flickering" element (re-rendering)
 describe.skip("scenarios > admin > datamodel > field", () => {
   beforeEach(() => {
-    signInAsAdmin();
+    cy.signInAsAdmin();
 
     ["CREATED_AT", "PRODUCT_ID", "QUANTITY"].forEach(name => {
       cy.wrap(
@@ -151,7 +150,7 @@ describe.skip("scenarios > admin > datamodel > field", () => {
     // [quarantined]: flake, blocking 3rd party PR
     it.skip("allows 'Custom mapping' null values", () => {
       restore("withSqlite");
-      signInAsAdmin();
+      cy.signInAsAdmin();
       const dbId = 2;
       withDatabase(
         dbId,

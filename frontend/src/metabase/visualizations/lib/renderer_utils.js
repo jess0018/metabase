@@ -6,6 +6,7 @@ import { t } from "ttag";
 
 import { datasetContainsNoResults } from "metabase/lib/dataset";
 import { parseTimestamp } from "metabase/lib/time";
+import { NULL_DISPLAY_VALUE, NULL_NUMERIC_VALUE } from "metabase/lib/constants";
 
 import {
   computeTimeseriesDataInverval,
@@ -18,6 +19,8 @@ import { computeNumericDataInverval, dimensionIsNumeric } from "./numeric";
 
 import { getAvailableCanvasWidth, getAvailableCanvasHeight } from "./utils";
 import { invalidDateWarning, nullDimensionWarning } from "./warnings";
+
+import type { Value } from "metabase-types/types/Dataset";
 
 export function initChart(chart, element) {
   // set the bounds
@@ -51,7 +54,6 @@ export function forceSortedGroup(
   group: CrossfilterGroup,
   indexMap: Map<Value, number>,
 ): void {
-  // $FlowFixMe
   const sorted = group
     .top(Infinity)
     .sort((a, b) => indexMap.get(a.key) - indexMap.get(b.key));
@@ -142,16 +144,25 @@ function getParseOptions({ settings, data }) {
 export function getDatas({ settings, series }, warn) {
   const isNotOrdinal = !isOrdinal(settings);
   return series.map(({ data }) => {
+    const parseOptions = getParseOptions({ settings, data });
+
+    let rows = data.rows;
+
     // non-ordinal dimensions can't display null values,
     // so we filter them out and display a warning
-    const rows = isNotOrdinal
-      ? data.rows.filter(([x]) => x !== null)
-      : data.rows;
+    if (isNotOrdinal) {
+      rows = data.rows.filter(([x]) => x !== null);
+    } else if (parseOptions.isNumeric) {
+      rows = data.rows.map(([x, ...rest]) => [
+        replaceNullValuesForOrdinal(x),
+        ...rest,
+      ]);
+    }
+
     if (rows.length < data.rows.length) {
       warn(nullDimensionWarning());
     }
 
-    const parseOptions = getParseOptions({ settings, data });
     return rows.map(row => {
       const [x, ...rest] = row;
       const newRow = [parseXValue(x, parseOptions, warn), ...rest];
@@ -267,7 +278,7 @@ export function syntheticStackedBarsForWaterfallChart(
   if (showTotal) {
     const total = [xValueForWaterfallTotal({ settings, series }), totalValue];
     if (mainSeries[0]._origin) {
-      // $FlowFixMe cloning for the total bar
+      // cloning for the total bar
       total._origin = {
         seriesIndex: mainSeries[0]._origin.seriesIndex,
         rowIndex: mainSeries.length,
@@ -346,7 +357,7 @@ export const isHistogram = settings =>
   settings["graph.x_axis._scale_original"] === "histogram" ||
   settings["graph.x_axis.scale"] === "histogram";
 export const isOrdinal = settings =>
-  !isTimeseries(settings) && !isHistogram(settings);
+  settings["graph.x_axis.scale"] === "ordinal";
 
 // bar histograms have special tick formatting:
 // * aligned with beginning of bar to show bin boundaries
@@ -390,7 +401,12 @@ export const isMultiCardSeries = series =>
   series.length > 1 &&
   getIn(series, [0, "card", "id"]) !== getIn(series, [1, "card", "id"]);
 
-const NULL_DISPLAY_VALUE = t`(empty)`;
 export function formatNull(value) {
   return value === null ? NULL_DISPLAY_VALUE : value;
+}
+
+// Hack: for numeric dimensions we have to replace null values
+// with anything else since crossfilter groups merge 0 and null
+export function replaceNullValuesForOrdinal(value) {
+  return value === null ? NULL_NUMERIC_VALUE : value;
 }

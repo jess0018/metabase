@@ -1,5 +1,7 @@
-import React, { Component } from "react";
+/* eslint-disable react/prop-types */
+import React, { Component, forwardRef } from "react";
 import ReactDOM from "react-dom";
+import ReactDOMServer from "react-dom/server";
 
 import TokenizedExpression from "./TokenizedExpression";
 
@@ -14,7 +16,7 @@ const KEYCODE_LEFT = 37;
 const KEYCODE_RIGHT = 39;
 const KEYCODE_FORWARD_DELETE = 46;
 
-export default class TokenizedInput extends Component {
+class TokenizedInput extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -145,17 +147,12 @@ export default class TokenizedInput extends Component {
     const inputNode = ReactDOM.findDOMNode(this);
     const restore = saveSelection(inputNode);
 
-    ReactDOM.unmountComponentAtNode(inputNode);
-    while (inputNode.firstChild) {
-      inputNode.removeChild(inputNode.firstChild);
-    }
-    ReactDOM.render(
+    inputNode.innerHTML = ReactDOMServer.renderToStaticMarkup(
       <TokenizedExpression
         source={this._getValue()}
         syntaxTree={this.props.syntaxTree}
         parserOptions={this.props.parserOptions}
       />,
-      inputNode,
     );
 
     if (document.activeElement === inputNode) {
@@ -164,12 +161,14 @@ export default class TokenizedInput extends Component {
   }
 
   render() {
-    const { className, onFocus, onBlur, style } = this.props;
+    const { className, onFocus, onBlur, style, forwardedRef } = this.props;
     return (
       <div
+        ref={forwardedRef}
         className={className}
         style={{ ...style }}
         contentEditable
+        spellCheck={false}
         onKeyDown={
           this.props.tokenizedEditing
             ? this.onKeyDownTokenized
@@ -183,3 +182,7 @@ export default class TokenizedInput extends Component {
     );
   }
 }
+
+export default forwardRef(function TokenizedInputWithForwardedRef(props, ref) {
+  return <TokenizedInput forwardedRef={ref} {...props} />;
+});

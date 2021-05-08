@@ -108,6 +108,10 @@
      :target [:dimension [:template-tag (:name tag)]]
      :value  default}))
 
+(s/defn ^:private defaulted-param
+  [{:keys [default value] :as param}]
+  (assoc param :value (or value default)))
+
 (s/defn ^:private field-filter->field-id :- su/IntGreaterThanZero
   [field-filter]
   (second field-filter))
@@ -117,25 +121,32 @@
   (i/map->FieldFilter
    ;; TODO - shouldn't this use the QP Store?
    {:field (let [field-id (field-filter->field-id field-filter)]
-             (or (db/select-one [Field :name :parent_id :table_id :base_type :semantic_type] :id field-id)
+             (or (db/select-one [Field :name :parent_id :table_id :base_type :effective_type :coercion_strategy :semantic_type]
+                   :id field-id)
                  (throw (ex-info (str (deferred-tru "Can''t find field with ID: {0}" field-id))
                                  {:field-id field-id, :type qp.error-type/invalid-parameter}))))
-    :value (if-let [value-info-or-infos (or
-                                         ;; look in the sequence of params we were passed to see if there's anything
-                                         ;; that matches
-                                         (param-with-target params [:dimension [:template-tag (:name tag)]])
-                                         ;; if not, check and see if we have a default param
-                                         (default-value-for-field-filter tag))]
-             ;; `value-info` will look something like after we remove `:target` which is not needed after this point
-             ;;
-             ;;    {:type   :date/single
-             ;;     :value  #t "2019-09-20T19:52:00.000-07:00"}
-             ;;
-             ;; (or it will be a vector of these maps for multiple values)
-             (cond
-               (map? value-info-or-infos)        (dissoc value-info-or-infos :target)
-               (sequential? value-info-or-infos) (mapv #(dissoc % :target) value-info-or-infos))
-             i/no-value)}))
+    :value (or (when-let [value-info-or-infos (or
+                                               ;; look in the sequence of params we were passed to see if there's anything
+                                               ;; that matches
+                                               (param-with-target (map defaulted-param params) [:dimension [:template-tag (:name tag)]])
+                                               ;; if not, check and see if we have a default param
+                                               (default-value-for-field-filter tag))]
+                 ;; `value-info` will look something like after we remove `:target` which is not needed after this point
+                 ;;
+                 ;;    {:type   :date/single
+                 ;;     :value  #t "2019-09-20T19:52:00.000-07:00"}
+                 ;;
+                 ;; (or it will be a vector of these maps for multiple values)
+                 (let [has-value?    (some-fn :value :default)
+                       dissoc-target #(dissoc % :target)]
+                   (cond
+                     (map? value-info-or-infos)
+                     (when (has-value? value-info-or-infos)
+                       (dissoc-target value-info-or-infos))
+                     (sequential? value-info-or-infos)
+                     (when (every? has-value? value-info-or-infos)
+                       (mapv dissoc-target value-info-or-infos)))))
+               i/no-value)}))
 
 (s/defmethod parse-tag :card :- ReferencedCardQuery
   [{:keys [card-id], :as tag} :- TagParam, params :- (s/maybe [i/ParamValue])]
@@ -240,13 +251,12 @@
   to parse it as appropriate based on the base type and semantic type of the Field associated with it). These are
   special cases for handling types that do not have an associated parameter type (such as `date` or `number`), such as
   UUID fields."
-  [base-type :- su/FieldType semantic-type :- (s/maybe su/FieldType) value]
+  [effective-type :- su/FieldType value]
   (cond
-    (isa? base-type :type/UUID)
+    (isa? effective-type :type/UUID)
     (UUID/fromString value)
 
-    (and (isa? base-type :type/Number)
-         (not (isa? semantic-type :type/Temporal)))
+    (isa? effective-type :type/Number)
     (value->number value)
 
     :else
@@ -255,17 +265,17 @@
 (s/defn ^:private update-filter-for-field-type :- ParsedParamValue
   "Update a Field Filter with a textual, or sequence of textual, values. The base type and semantic type of the field
   are used to determine what 'semantic' type interpretation is required (e.g. for UUID fields)."
-  [{{base-type :base_type, semantic-type :semantic_type} :field, {value :value} :value, :as field-filter} :- FieldFilter]
+  [{{effective_type :effective_type, :as _field} :field, {value :value} :value, :as field-filter} :- FieldFilter]
   (let [new-value (cond
                     (string? value)
-                    (parse-value-for-field-type base-type semantic-type value)
+                    (parse-value-for-field-type effective_type value)
 
                     (and (sequential? value)
                          (every? string? value))
-                    (mapv (partial parse-value-for-field-type base-type semantic-type) value))]
+                    (mapv (partial parse-value-for-field-type effective_type) value))]
     (when (not= value new-value)
-      (log/tracef "update filter for base-type: %s semantic-type: %s value: %s -> %s"
-                  (pr-str base-type) (pr-str semantic-type) (pr-str value) (pr-str new-value)))
+      (log/tracef "update filter for base-type: %s value: %s -> %s"
+                  (pr-str effective_type) (pr-str value) (pr-str new-value)))
     (cond-> field-filter
       new-value (assoc-in [:value :value] new-value))))
 

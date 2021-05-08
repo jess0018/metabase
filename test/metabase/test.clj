@@ -23,6 +23,7 @@
             [metabase.test.data :as data]
             [metabase.test.data.datasets :as datasets]
             [metabase.test.data.env :as tx.env]
+            [metabase.test.data.impl :as data.impl]
             [metabase.test.data.interface :as tx]
             [metabase.test.data.users :as test-users]
             [metabase.test.initialize :as initialize]
@@ -40,6 +41,7 @@
 ;; https://github.com/clojure-emacs/refactor-nrepl/pull/270
 (comment
   data/keep-me
+  data.impl/keep-me
   datasets/keep-me
   driver/keep-me
   et/keep-me
@@ -75,6 +77,9 @@
   run-mbql-query
   with-db
   with-temp-copy-of-db]
+
+ [data.impl
+  *db-is-temp-copy?*]
 
  [datasets
   test-driver
@@ -129,9 +134,11 @@
   normal-drivers-with-feature
   normal-drivers-without-feature
   rows
-  rows+column-names]
+  rows+column-names
+  with-bigquery-fks]
 
  [qp.test-util
+  store-contents
   with-database-timezone-id
   with-everything-store
   with-report-timezone-id
@@ -147,11 +154,14 @@
   user->credentials
   user->id
   user-http-request
+  with-group
+  with-group-for-user
   with-test-user]
 
  [tt
   with-temp
-  with-temp*]
+  with-temp*
+  with-temp-defaults]
 
  [tu
   boolean-ids-and-timestamps
@@ -168,6 +178,7 @@
   throw-if-called
   with-column-remappings
   with-discarded-collections-perms-changes
+  with-env-keys-renamed-by
   with-locale
   with-log-level
   with-log-messages
@@ -176,6 +187,8 @@
   with-non-admin-groups-no-root-collection-for-namespace-perms
   with-non-admin-groups-no-root-collection-perms
   with-scheduler
+  with-temp-env-var-value
+  with-temp-file
   with-temp-scheduler
   with-temp-vals-in-db
   with-temporary-setting-values]
@@ -207,7 +220,8 @@
   get-dataset-definition
   has-questionable-timezone-support?
   has-test-extensions?
-  metabase-instance]
+  metabase-instance
+  sorts-nil-first?]
 
  [tx.env
   set-test-drivers!
@@ -216,7 +230,10 @@
 ;; ee-only stuff
 (u/ignore-exceptions
   (classloader/require 'metabase-enterprise.sandbox.test-util)
-  (eval '(potemkin/import-vars [metabase-enterprise.sandbox.test-util with-gtaps])))
+  (eval '(potemkin/import-vars [metabase-enterprise.sandbox.test-util
+                                with-gtaps
+                                with-gtaps-for-user
+                                with-user-attributes])))
 
 ;; TODO -- move this stuff into some other namespace and refer to it here
 

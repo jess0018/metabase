@@ -1,5 +1,3 @@
-/* @flow */
-
 import React from "react";
 import { jt } from "ttag";
 import { TYPE, isa, isFK, isPK } from "metabase/lib/types";
@@ -14,7 +12,9 @@ import type {
 function getFiltersForColumn(column) {
   if (
     isa(column.base_type, TYPE.Number) ||
-    isa(column.base_type, TYPE.Temporal)
+    isa(column.base_type, TYPE.Temporal) ||
+    // change to semantic_type or ideally effective_type if that is known after merging into master
+    isa(column.special_type, TYPE.Temporal)
   ) {
     return [
       { name: "<", operator: "<" },

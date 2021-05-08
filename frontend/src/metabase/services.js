@@ -1,15 +1,14 @@
-/* @flow */
 import _ from "underscore";
 
 import { GET, PUT, POST, DELETE } from "metabase/lib/api";
 import { IS_EMBED_PREVIEW } from "metabase/lib/embed";
 import Metadata from "metabase-lib/lib/metadata/Metadata";
 import Question from "metabase-lib/lib/Question";
+import { FieldDimension } from "metabase-lib/lib/Dimension";
 
 // use different endpoints for embed previews
 const embedBase = IS_EMBED_PREVIEW ? "/api/preview_embed" : "/api/embed";
 
-// $FlowFixMe: Flow doesn't understand webpack loader syntax
 import getGAMetadata from "promise-loader?global!metabase/lib/ga-metadata"; // eslint-disable-line import/default
 
 import type { Data, Options, APIMethod } from "metabase/lib/api";
@@ -44,10 +43,11 @@ export function maybeUsePivotEndpoint(
   function canonicalFieldRef(ref) {
     // Field refs between the query and setting might differ slightly.
     // This function trims binned dimensions to just the field-id
-    if (ref[0] === "binning-strategy") {
-      return ref.slice(0, 2);
+    const dimension = FieldDimension.parseMBQL(ref);
+    if (!dimension) {
+      return ref;
     }
-    return ref;
+    return dimension.withoutOptions("binning").mbql();
   }
 
   const question = new Question(card, metadata);
@@ -138,7 +138,7 @@ export const DashboardApi = {
   favorite: POST("/api/dashboard/:dashId/favorite"),
   unfavorite: DELETE("/api/dashboard/:dashId/favorite"),
   parameterValues: GET("/api/dashboard/:dashId/params/:paramId/values"),
-  parameterSearch: GET("/api/dashboard/:dashId/params/:paramId/search/:prefix"),
+  parameterSearch: GET("/api/dashboard/:dashId/params/:paramId/search/:query"),
   validFilterFields: GET("/api/dashboard/params/valid-filter-fields"),
 
   listPublic: GET("/api/dashboard/public"),
@@ -340,7 +340,6 @@ export const MetricApi = {
   create: POST("/api/metric"),
   get: GET("/api/metric/:metricId"),
   update: PUT("/api/metric/:id"),
-  update_important_fields: PUT("/api/metric/:metricId/important_fields"),
   delete: DELETE("/api/metric/:metricId"),
 };
 
@@ -384,10 +383,6 @@ export const PermissionsApi = {
   deleteGroup: DELETE("/api/permissions/group/:id"),
 };
 
-export const GettingStartedApi = {
-  get: GET("/api/getting_started"),
-};
-
 export const SetupApi = {
   create: POST("/api/setup"),
   validate_db: POST("/api/setup/validate"),
@@ -412,6 +407,8 @@ export const UtilApi = {
   random_token: GET("/api/util/random_token"),
   logs: GET("/api/util/logs"),
   bug_report_details: GET("/api/util/bug_report_details"),
+  // this one does not need an HTTP verb because it's opened as an external link
+  connection_pool_details_url: "/api/util/diagnostic_info/connection_pool_info",
 };
 
 export const GeoJSONApi = {
@@ -469,7 +466,7 @@ function setParamsEndpoints(prefix: string) {
     prefix + "/dashboard/:dashId/params/:paramId/values",
   );
   DashboardApi.parameterSearch = GET(
-    prefix + "/dashboard/:dashId/params/:paramId/search/:prefix",
+    prefix + "/dashboard/:dashId/params/:paramId/search/:query",
   );
 }
 

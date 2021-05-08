@@ -1,8 +1,8 @@
-import { signInAsAdmin, restore } from "__support__/cypress";
+import { restore, showDashboardCardActions } from "__support__/e2e/cypress";
 
 function addTextBox(string) {
-  cy.get(".Icon-pencil").click();
-  cy.get(".Icon-string").click();
+  cy.icon("pencil").click();
+  cy.icon("string").click();
   cy.findByPlaceholderText("Write here, and use Markdown if you'd like").type(
     string,
   );
@@ -11,7 +11,7 @@ function addTextBox(string) {
 describe("scenarios > dashboard > text-box", () => {
   beforeEach(() => {
     restore();
-    signInAsAdmin();
+    cy.signInAsAdmin();
   });
 
   describe("Editing", () => {
@@ -21,10 +21,14 @@ describe("scenarios > dashboard > text-box", () => {
       addTextBox("Text *text* __text__");
     });
 
-    it("should render edit and preview actions when editing", () => {
-      // Check edit options
-      cy.get(".Icon-edit_document");
-      cy.get(".Icon-eye");
+    it("should render correct icons for preview and edit modes", () => {
+      showDashboardCardActions(1);
+
+      // edit mode
+      cy.icon("eye").click();
+
+      // preview mode
+      cy.icon("edit_document");
     });
 
     it("should not render edit and preview actions when not editing", () => {
@@ -32,8 +36,8 @@ describe("scenarios > dashboard > text-box", () => {
       cy.findByText("Save").click();
       cy.findByText("You are editing a dashboard").should("not.exist");
       cy.contains("Text text text");
-      cy.get(".Icon-edit_document").should("not.exist");
-      cy.get(".Icon-eye").should("not.exist");
+      cy.icon("edit_document").should("not.exist");
+      cy.icon("eye").should("not.exist");
     });
 
     it("should switch between rendered markdown and textarea input", () => {
@@ -45,11 +49,8 @@ describe("scenarios > dashboard > text-box", () => {
 
   describe("when text-box is the only element on the dashboard", () => {
     beforeEach(() => {
-      // Create dashboard
       cy.server();
-      cy.request("POST", "/api/dashboard", {
-        name: "Test Dashboard",
-      });
+      cy.createDashboard("Test Dashboard");
     });
 
     // fixed in metabase#11358
@@ -62,9 +63,6 @@ describe("scenarios > dashboard > text-box", () => {
       // Add save text box to dash
       addTextBox("Dashboard testing text");
       cy.findByText("Save").click();
-
-      cy.findByText("Saving…");
-      cy.findByText("Saving…").should("not.exist");
 
       // Reload page
       cy.reload();

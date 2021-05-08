@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
@@ -27,7 +26,6 @@ import cx from "classnames";
 import ExplicitSize from "metabase/components/ExplicitSize";
 import MiniBar from "./MiniBar";
 
-// $FlowFixMe: had to ignore react-virtualized in flow, probably due to different version
 import { Grid, ScrollSync } from "react-virtualized";
 import Draggable from "react-draggable";
 import Ellipsified from "metabase/components/Ellipsified";
@@ -47,7 +45,7 @@ import type {
   ClickObject,
 } from "metabase-types/types/Visualization";
 import type { VisualizationSettings } from "metabase-types/types/Card";
-import type { DatasetData } from "metabase-types/types/Dataset";
+import type { DatasetData, Value } from "metabase-types/types/Dataset";
 
 function pickRowsToMeasure(rows, columnIndex, count = 10) {
   const rowIndexes = [];
@@ -150,7 +148,7 @@ export default class TableInteractive extends Component {
     ),
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     // for measuring cells:
     this._div = document.createElement("div");
     this._div.className = "TableInteractive";
@@ -169,7 +167,7 @@ export default class TableInteractive extends Component {
     }
   }
 
-  componentWillReceiveProps(newProps: Props) {
+  UNSAFE_componentWillReceiveProps(newProps: Props) {
     if (
       this.props.data &&
       newProps.data &&
@@ -508,13 +506,22 @@ export default class TableInteractive extends Component {
           "Table-FK": value != null && isFK(column),
           link: isClickable && isID(column),
         })}
-        onMouseUp={
+        onClick={
           isClickable
             ? e => {
                 this.onVisualizationClick(clicked, e.currentTarget);
               }
             : undefined
         }
+        onKeyUp={
+          isClickable
+            ? e => {
+                e.key === "Enter" &&
+                  this.onVisualizationClick(clicked, e.currentTarget);
+              }
+            : undefined
+        }
+        tabIndex="0"
       >
         {this.props.renderTableCellWrapper(cellData)}
       </div>
@@ -560,12 +567,10 @@ export default class TableInteractive extends Component {
     const { dragColIndex, columnPositions } = this.state;
     const { cols } = this.props.data;
     const indexes = cols.map((col, index) => index);
-    // $FlowFixMe
     indexes.splice(dragColNewIndex, 0, indexes.splice(dragColIndex, 1)[0]);
     let left = 0;
     const lefts = indexes.map(index => {
       const thisLeft = left;
-      // $FlowFixMe: we know columnPositions[index] isn't null because onDrag is called after onStart
       left += columnPositions[index].width;
       return { index, left: thisLeft };
     });
@@ -756,13 +761,10 @@ export default class TableInteractive extends Component {
   handleOnMouseEnter = () => {
     // prevent touchpad gestures from navigating forward/back if you're expecting to just scroll the table
     // https://stackoverflow.com/a/50846937
-    // $FlowFixMe: overscrollBehaviorX
     this._previousOverscrollBehaviorX = document.body.style.overscrollBehaviorX;
-    // $FlowFixMe: overscrollBehaviorX
     document.body.style.overscrollBehaviorX = "none";
   };
   handleOnMouseLeave = () => {
-    // $FlowFixMe: overscrollBehaviorX
     document.body.style.overscrollBehaviorX = this._previousOverscrollBehaviorX;
   };
 

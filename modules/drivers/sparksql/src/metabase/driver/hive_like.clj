@@ -26,11 +26,11 @@
   :sunday)
 
 (defmethod sql-jdbc.conn/data-warehouse-connection-pool-properties :hive-like
-  [driver]
+  [driver database]
   ;; The Hive JDBC driver doesn't support `Connection.isValid()`, so we need to supply a test query for c3p0 to use to
   ;; validate connections upon checkout.
   (merge
-   ((get-method sql-jdbc.conn/data-warehouse-connection-pool-properties :sql-jdbc) driver)
+   ((get-method sql-jdbc.conn/data-warehouse-connection-pool-properties :sql-jdbc) driver database)
    {"preferredTestQuery" "SELECT 1"}))
 
 (defmethod sql-jdbc.sync/database-type->base-type :hive-like
@@ -89,21 +89,21 @@
 (defmethod sql.qp/date [:hive-like :year]            [_ _ expr] (hsql/call :trunc (hx/->timestamp expr) (hx/literal :year)))
 
 (defmethod sql.qp/date [:hive-like :day-of-week]
-  [_ _ expr]
-  (sql.qp/adjust-day-of-week :hive-like
+  [driver _ expr]
+  (sql.qp/adjust-day-of-week driver
                              (hx/->integer (date-format "u"
                                                         (hx/+ (hx/->timestamp expr)
                                                               (hsql/raw "interval '1' day"))))))
 
 (defmethod sql.qp/date [:hive-like :week]
-  [_ _ expr]
+  [driver _ expr]
   (let [week-extract-fn (fn [expr]
                           (hsql/call :date_sub
                             (hx/+ (hx/->timestamp expr)
                                   (hsql/raw "interval '1' day"))
                             (date-format "u" (hx/+ (hx/->timestamp expr)
                                                    (hsql/raw "interval '1' day")))))]
-    (sql.qp/adjust-start-of-week :hive-like week-extract-fn expr)))
+    (sql.qp/adjust-start-of-week driver week-extract-fn expr)))
 
 (defmethod sql.qp/date [:hive-like :quarter]
   [_ _ expr]

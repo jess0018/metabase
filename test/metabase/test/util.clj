@@ -1,36 +1,45 @@
 (ns metabase.test.util
   "Helper functions and macros for writing unit tests."
   (:require [cheshire.core :as json]
+            [clojure.java.io :as io]
+            [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :refer :all]
             [clojure.walk :as walk]
             [clojurewerkz.quartzite.scheduler :as qs]
             [colorize.core :as colorize]
+            [environ.core :as env]
             [java-time :as t]
             [metabase.driver :as driver]
             [metabase.models :refer [Card Collection Dashboard DashboardCardSeries Database Dimension Field FieldValues
-                                     Metric NativeQuerySnippet Permissions PermissionsGroup Pulse PulseCard PulseChannel
-                                     Revision Segment Table TaskHistory User]]
+                                     LoginHistory Metric NativeQuerySnippet Permissions PermissionsGroup Pulse PulseCard
+                                     PulseChannel Revision Segment Table TaskHistory User]]
             [metabase.models.collection :as collection]
             [metabase.models.permissions :as perms]
             [metabase.models.permissions-group :as group]
             [metabase.models.setting :as setting]
+            [metabase.models.setting.cache :as setting.cache]
             [metabase.plugins.classloader :as classloader]
             [metabase.task :as task]
             [metabase.test.data :as data]
+            [metabase.test.fixtures :as fixtures]
             [metabase.test.initialize :as initialize]
             [metabase.test.util.log :as tu.log]
             [metabase.util :as u]
+            [metabase.util.files :as u.files]
             [potemkin :as p]
             [schema.core :as s]
             [toucan.db :as db]
             [toucan.models :as t.models]
             [toucan.util.test :as tt])
-  (:import java.util.concurrent.TimeoutException
+  (:import java.net.ServerSocket
+           java.util.concurrent.TimeoutException
            java.util.Locale
            [org.quartz CronTrigger JobDetail JobKey Scheduler Trigger]))
 
 (comment tu.log/keep-me)
+
+(use-fixtures :once (fixtures/initialize :db))
 
 ;; these are imported because these functions originally lived in this namespace, and some tests might still be
 ;; referencing them from here. We can remove the imports once everyone is using `metabase.test` instead of using this
@@ -86,7 +95,7 @@
    (boolean-ids-and-timestamps
     (every-pred (some-fn keyword? string?)
                 (some-fn #{:id :created_at :updated_at :last_analyzed :created-at :updated-at :field-value-id :field-id
-                           :date_joined :date-joined :last_login :dimension-id :human-readable-field-id}
+                           :date_joined :date-joined :last_login :dimension-id :human-readable-field-id :timestamp}
                          #(str/ends-with? % "_id")
                          #(str/ends-with? % "_at")))
     data))
@@ -144,6 +153,11 @@
             :name          (random-name)
             :position      1
             :table_id      (data/id :checkins)})
+
+   LoginHistory
+   (fn [_] {:device_id          "129d39d1-6758-4d2c-a751-35b860007002"
+            :device_description "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/89.0.4389.86 Safari/537.36"
+            :ip_address         "0:0:0:0:0:0:0:1"})
 
    Metric
    (fn [_] {:creator_id  (rasta-id)
@@ -264,19 +278,6 @@
   [obj]
   (json/parse-string (json/generate-string obj) keyword))
 
-
-(defn mappify
-  "Walk `coll` and convert all record types to plain Clojure maps. Useful because expectations will consider an instance
-  of a record type to be different from a plain Clojure map, even if all keys & values are the same."
-  [coll]
-  {:style/indent 0}
-  (walk/postwalk (fn [x]
-                   (if (map? x)
-                     (into {} x)
-                     x))
-                 coll))
-
-
 (defn do-with-temporary-setting-value
   "Temporarily set the value of the Setting named by keyword `setting-k` to `value` and execute `f`, then re-establish
   the original value. This works much the same way as `binding`.
@@ -302,7 +303,9 @@
   works much the same way as `binding`.
 
      (with-temporary-setting-values [google-auth-auto-create-accounts-domain \"metabase.com\"]
-       (google-auth-auto-create-accounts-domain)) -> \"metabase.com\""
+       (google-auth-auto-create-accounts-domain)) -> \"metabase.com\"
+
+  To temporarily override the value of *read-only* env-var based Settings, use `with-temp-env-var-value`."
   [[setting-k value & more :as bindings] & body]
   (assert (even? (count bindings)) "mismatched setting/value pairs: is each setting name followed by a value?")
   (if (empty? bindings)
@@ -672,7 +675,7 @@
   `(do-with-non-admin-groups-no-collection-perms
     (assoc collection/root-collection
            :namespace (name ~collection-namespace))
-    (fn [] ~@body) ))
+    (fn [] ~@body)))
 
 (defn doall-recursive
   "Like `doall`, but recursively calls doall on map values and nested sequences, giving you a fully non-lazy object.
@@ -799,3 +802,191 @@
            cols)
     (fn []
       ~@body)))
+
+(defn find-free-port
+  "Finds and returns an available port number on the current host. Does so by briefly creating a ServerSocket, which
+  is closed when returning."
+  []
+  (with-open [socket (ServerSocket. 0)]
+    (.getLocalPort socket)))
+
+(defn do-with-env-keys-renamed-by
+  "Evaluates the thunk with the current core.environ/env being redefined, its keys having been renamed by the given
+  rename-fn. Prefer to use the with-env-keys-renamed-by macro version instead."
+  [rename-fn thunk]
+  (let [orig-e     env/env
+        renames-fn (fn [m k _]
+                     (let [k-str (name k)
+                           new-k (rename-fn k-str)]
+                       (if (not= k-str new-k)
+                         (assoc m k (keyword new-k))
+                         m)))
+        renames    (reduce-kv renames-fn {} orig-e)
+        new-e      (set/rename-keys orig-e renames)]
+    (testing (colorize/blue (format "\nRenaming env vars by map: %s\n" (u/pprint-to-str renames)))
+      (with-redefs [env/env new-e]
+        (thunk)))))
+
+(defmacro with-env-keys-renamed-by
+  "Evaluates body with the current core.environ/env being redefined, its keys having been renamed by the given
+  rename-fn."
+  {:arglists '([rename-fn & body])}
+  [rename-fn & body]
+  `(do-with-env-keys-renamed-by ~rename-fn (fn [] ~@body)))
+
+(defn do-with-temp-file
+  "Impl for `with-temp-file` macro."
+  [filename f]
+  {:pre [(or (string? filename) (nil? filename))]}
+  (let [filename (if (string? filename)
+                   filename
+                   (random-name))
+        filename (str (u.files/get-path (System/getProperty "java.io.tmpdir") filename))]
+    ;; delete file if it already exists
+    (io/delete-file (io/file filename) :silently)
+    (try
+      (f filename)
+      (finally
+        (io/delete-file (io/file filename) :silently)))))
+
+(defmacro with-temp-file
+  "Execute `body` with newly created temporary file(s) in the system temporary directory. You may optionally specify the
+  `filename` (without directory components) to be created in the temp directory; if `filename` is nil, a random
+  filename will be used. The file will be deleted if it already exists, but will not be touched; use `spit` to load
+  something in to it.
+
+    ;; create a random temp filename. File is deleted if it already exists.
+    (with-temp-file [filename]
+      ...)
+
+    ;; get a temp filename ending in `parrot-list.txt`
+    (with-temp-file [filename \"parrot-list.txt\"]
+      ...)"
+  [[filename-binding filename-or-nil & more :as bindings] & body]
+  {:pre [(vector? bindings) (>= (count bindings) 1)]}
+  `(do-with-temp-file
+    ~filename-or-nil
+    (fn [~(vary-meta filename-binding assoc :tag `String)]
+      ~@(if (seq more)
+          [`(with-temp-file ~(vec more) ~@body)]
+          body))))
+
+(deftest with-temp-file-test
+  (testing "random filename"
+    (let [temp-filename (atom nil)]
+      (with-temp-file [filename]
+        (is (string? filename))
+        (is (not (.exists (io/file filename))))
+        (spit filename "wow")
+        (reset! temp-filename filename))
+      (testing "File should be deleted at end of macro form"
+        (is (not (.exists (io/file @temp-filename)))))))
+
+  (testing "explicit filename"
+    (with-temp-file [filename "parrot-list.txt"]
+      (is (string? filename))
+      (is (not (.exists (io/file filename))))
+      (is (str/ends-with? filename "parrot-list.txt"))
+      (spit filename "wow")
+      (testing "should delete existing file"
+        (with-temp-file [filename "parrot-list.txt"]
+          (is (not (.exists (io/file filename))))))))
+
+  (testing "multiple bindings"
+    (with-temp-file [filename nil, filename-2 "parrot-list.txt"]
+      (is (string? filename))
+      (is (string? filename-2))
+      (is (not (.exists (io/file filename))))
+      (is (not (.exists (io/file filename-2))))
+      (is (not (str/ends-with? filename "parrot-list.txt")))
+      (is (str/ends-with? filename-2 "parrot-list.txt"))))
+
+  (testing "should delete existing file"
+    (with-temp-file [filename "parrot-list.txt"]
+      (spit filename "wow")
+      (with-temp-file [filename "parrot-list.txt"]
+        (is (not (.exists (io/file filename)))))))
+
+  (testing "validation"
+    (are [form] (thrown?
+                 clojure.lang.Compiler$CompilerException
+                 (macroexpand form))
+      `(with-temp-file [])
+      `(with-temp-file (+ 1 2)))))
+
+(defn- ->lisp-case-keyword [s]
+  (-> (name s)
+      (str/replace #"_" "-")
+      str/lower-case
+      keyword))
+
+(defn do-with-temp-env-var-value
+  "Impl for `with-temp-env-var-value` macro."
+  [env-var-keyword value thunk]
+  (let [value (str value)]
+    (testing (colorize/blue (format "\nEnv var %s = %s\n" env-var-keyword (pr-str value)))
+      (try
+        ;; temporarily override the underlying environment variable value
+        (with-redefs [env/env (assoc env/env env-var-keyword value)]
+          ;; flush the Setting cache so it picks up the env var value for the Setting (if applicable)
+          (setting.cache/restore-cache!)
+          (thunk))
+        (finally
+          ;; flush the cache again so the original value of any env var Settings get restored
+          (setting.cache/restore-cache!))))))
+
+(defmacro with-temp-env-var-value
+  "Temporarily override the value of one or more environment variables and execute `body`. Resets the Setting cache so
+  any env var Settings will see the updated value, and resets the cache again at the conclusion of `body` so the
+  original values are restored.
+
+    (with-temp-env-var-value [mb-send-email-on-first-login-from-new-device \"FALSE\"]
+      ...)"
+  [[env-var value & more :as bindings] & body]
+  {:pre [(vector? bindings) (even? (count bindings))]}
+  `(do-with-temp-env-var-value
+    ~(->lisp-case-keyword env-var)
+    ~value
+    (fn [] ~@(if (seq more)
+               [`(with-temp-env-var-value ~(vec more) ~@body)]
+               body))))
+
+(setting/defsetting with-temp-env-var-value-test-setting
+  "Setting for the `with-temp-env-var-value-test` test."
+  :visibility :internal
+  :setter     :none
+  :default    "abc")
+
+(deftest with-temp-env-var-value-test
+  (is (= "abc"
+         (with-temp-env-var-value-test-setting)))
+  (with-temp-env-var-value [mb-with-temp-env-var-value-test-setting "def"]
+    (testing "env var value"
+      (is (= "def"
+             (env/env :mb-with-temp-env-var-value-test-setting))))
+    (testing "Setting value"
+      (is (= "def"
+             (with-temp-env-var-value-test-setting)))))
+  (testing "original value should be restored"
+    (testing "env var value"
+      (is (= nil
+             (env/env :mb-with-temp-env-var-value-test-setting))))
+    (testing "Setting value"
+      (is (= "abc"
+             (with-temp-env-var-value-test-setting)))))
+
+  (testing "override multiple env vars"
+    (with-temp-env-var-value [some-fake-env-var 123, "ANOTHER_FAKE_ENV_VAR" "def"]
+      (testing "Should convert values to strings"
+        (is (= "123"
+               (:some-fake-env-var env/env))))
+      (testing "should handle CAPITALS/SNAKE_CASE"
+        (is (= "def"
+               (:another-fake-env-var env/env))))))
+
+  (testing "validation"
+    (are [form] (thrown?
+                 clojure.lang.Compiler$CompilerException
+                 (macroexpand form))
+      (list `with-temp-env-var-value '[a])
+      (list `with-temp-env-var-value '[a b c]))))

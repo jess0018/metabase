@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { connect } from "react-redux";
 import _ from "underscore";
@@ -82,6 +83,7 @@ class ClickMappings extends React.Component {
           {setTargets.map(target => {
             return (
               <TargetWithSource
+                key={target.id}
                 targetName={this.getTargetName()}
                 target={target}
                 {...this.props}
@@ -98,6 +100,7 @@ class ClickMappings extends React.Component {
               {unsetTargetsWithSourceOptions.map(
                 ({ target, sourceOptions }) => (
                   <TargetWithoutSource
+                    key={target.id}
                     target={target}
                     {...this.props}
                     sourceOptions={sourceOptions}

@@ -1,5 +1,3 @@
-/* @flow */
-
 import { createEntity, undo } from "metabase/lib/entities";
 
 import { color } from "metabase/lib/colors";
@@ -55,7 +53,6 @@ const Collections = createEntity({
       ),
 
     // NOTE: DELETE not currently implemented
-    // $FlowFixMe: no official way to disable builtin actions yet
     delete: null,
   },
 
@@ -69,7 +66,10 @@ const Collections = createEntity({
     getExpandedCollectionsById: createSelector(
       [
         state => state.entities.collections,
-        state => state.entities.collections_list[null] || [],
+        state => {
+          const { list } = state.entities.collections_list[null] || {};
+          return list || [];
+        },
         getUser,
       ],
       (collections, collectionsIds, user) =>
@@ -80,6 +80,7 @@ const Collections = createEntity({
     ),
     getInitialCollectionId: createSelector(
       [
+        state => state.entities.collections,
         // these are listed in order of priority
         (state, { collectionId }) => collectionId,
         (state, { params }) => (params ? params.collectionId : undefined),
@@ -87,9 +88,10 @@ const Collections = createEntity({
           location && location.query ? location.query.collectionId : undefined,
         getUserDefaultCollectionId,
       ],
-      (...collectionIds) => {
+      (collections, ...collectionIds) => {
         for (const collectionId of collectionIds) {
-          if (collectionId !== undefined) {
+          const collection = collections[collectionId];
+          if (collection && collection.can_write) {
             return canonicalCollectionId(collectionId);
           }
         }
@@ -150,6 +152,13 @@ export const canonicalCollectionId = (
   collectionId == null || collectionId === "root"
     ? null
     : parseInt(collectionId, 10);
+
+export function normalizedCollection(collection) {
+  if (canonicalCollectionId(collection.id) === null) {
+    return ROOT_COLLECTION;
+  }
+  return collection;
+}
 
 export const getCollectionType = (collectionId: string, state: {}) =>
   collectionId === null || collectionId === "root"
@@ -276,7 +285,6 @@ export function getExpandedCollectionsById(
         parentId = ROOT_COLLECTION.id;
       }
 
-      // $FlowFixMe
       const parent = parentId == null ? null : collectionsById[parentId];
       c.parent = parent;
       // need to ensure the parent collection exists, it may have been filtered

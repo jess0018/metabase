@@ -2,37 +2,38 @@
   (:require [clojure.test :refer :all]
             [java-time :as t]
             [metabase.driver.common.parameters.dates :as dates]
+            [metabase.test :as mt]
             [metabase.util.date-2 :as u.date]))
 
 (deftest date-string->filter-test
   (testing "year and month"
     (is (= [:between
-            [:datetime-field [:field-literal "field" :type/DateTime] :day]
+            [:field "field" {:base-type :type/DateTime, :temporal-unit :day}]
             "2019-04-01"
             "2019-04-30"]
-           (dates/date-string->filter "2019-04" [:field-literal "field" :type/DateTime])))
+           (dates/date-string->filter "2019-04" [:field "field" {:base-type :type/DateTime}])))
     (testing "quarter year"
       (is (= [:between
-              [:datetime-field [:field-literal "field" :type/DateTime] :day]
+              [:field "field" {:base-type :type/DateTime, :temporal-unit :day}]
               "2019-04-01"
               "2019-06-30"]
-             (dates/date-string->filter "Q2-2019" [:field-literal "field" :type/DateTime]))))
+             (dates/date-string->filter "Q2-2019" [:field "field" {:base-type :type/DateTime}]))))
     (testing "single day"
       (is (= [:=
-              [:datetime-field [:field-literal "field" :type/DateTime] :day]
+              [:field "field" {:base-type :type/DateTime, :temporal-unit :day}]
               "2019-04-01"]
-             (dates/date-string->filter "2019-04-01" [:field-literal "field" :type/DateTime]))))
+             (dates/date-string->filter "2019-04-01" [:field "field" {:base-type :type/DateTime}]))))
     (testing "day range"
       (is (= [:between
-              [:datetime-field [:field-literal "field" :type/DateTime] :day]
+              [:field "field" {:base-type :type/DateTime, :temporal-unit :day}]
               "2019-04-01"
               "2019-04-03"]
-             (dates/date-string->filter "2019-04-01~2019-04-03" [:field-literal "field" :type/DateTime]))))
+             (dates/date-string->filter "2019-04-01~2019-04-03" [:field "field" {:base-type :type/DateTime}]))))
     (testing "after day"
       (is (= [:>
-              [:datetime-field [:field-literal "field" :type/DateTime] :day]
+              [:field "field" {:base-type :type/DateTime, :temporal-unit :day}]
               "2019-04-01"]
-             (dates/date-string->filter "2019-04-01~" [:field-literal "field" :type/DateTime]))))))
+             (dates/date-string->filter "2019-04-01~" [:field "field" {:base-type :type/DateTime}]))))))
 
 (deftest date-string->range-test
   (t/with-clock (t/mock-clock #t "2016-06-07T12:13:55Z")
@@ -102,3 +103,17 @@
           (is (= expected
                  (dates/date-string->range s options))
               (format "%s with options %s should parse to %s" (pr-str s) (pr-str options) (pr-str expected))))))))
+
+(deftest custom-start-of-week-test
+  (testing "Relative filters should respect the custom `start-of-week` Setting (#14294)"
+    (mt/with-clock #t "2021-03-01T14:15:00-08:00[US/Pacific]"
+      (doseq [[first-day-of-week expected] {"sunday"    {:start "2021-02-21", :end "2021-02-27"}
+                                            "monday"    {:start "2021-02-22", :end "2021-02-28"}
+                                            "tuesday"   {:start "2021-02-16", :end "2021-02-22"}
+                                            "wednesday" {:start "2021-02-17", :end "2021-02-23"}
+                                            "thursday"  {:start "2021-02-18", :end "2021-02-24"}
+                                            "friday"    {:start "2021-02-19", :end "2021-02-25"}
+                                            "saturday"  {:start "2021-02-20", :end "2021-02-26"}}]
+        (mt/with-temporary-setting-values [start-of-week first-day-of-week]
+          (is (= expected
+                 (dates/date-string->range "past1weeks"))))))))

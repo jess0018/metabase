@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 
@@ -17,13 +18,14 @@ import {
   GRID_ASPECT_RATIO,
   GRID_MARGIN,
   DEFAULT_CARD_SIZE,
+  MIN_ROW_HEIGHT,
 } from "metabase/lib/dashboard_grid";
 
 import _ from "underscore";
 import cx from "classnames";
 
 const MOBILE_ASPECT_RATIO = 3 / 2;
-const MOBILE_TEXT_CARD_ROW_HEIGHT = 40;
+const MOBILE_TEXT_CARD_ROW_HEIGHT = 60;
 
 @ExplicitSize()
 export default class DashboardGrid extends Component {
@@ -65,7 +67,7 @@ export default class DashboardGrid extends Component {
     isEditingParameter: false,
   };
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
       dashcards: this.getSortedDashcards(nextProps),
       layout: this.getLayout(nextProps),
@@ -255,7 +257,6 @@ export default class DashboardGrid extends Component {
           "Dash--editing": this.isEditingLayout,
           "Dash--dragging": this.state.isDragging,
         })}
-        style={{ margin: 0 }}
       >
         {dashcards &&
           dashcards.map(dc => (
@@ -285,7 +286,10 @@ export default class DashboardGrid extends Component {
 
   renderGrid() {
     const { dashboard, width } = this.props;
-    const rowHeight = Math.floor(width / GRID_WIDTH / GRID_ASPECT_RATIO);
+    const rowHeight = Math.max(
+      Math.floor(width / GRID_WIDTH / GRID_ASPECT_RATIO),
+      MIN_ROW_HEIGHT,
+    );
     return (
       <GridLayout
         className={cx("DashboardGrid", {

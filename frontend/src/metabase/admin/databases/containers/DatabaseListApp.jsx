@@ -1,5 +1,4 @@
-/* @flow weak */
-
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
@@ -51,6 +50,15 @@ const mapDispatchToProps = {
   mapDispatchToProps,
 )
 export default class DatabaseList extends Component {
+  constructor(props) {
+    super(props);
+
+    this.createdDatabaseModal = React.createRef();
+    props.databases.map(database => {
+      this["deleteDatabaseModal_" + database.id] = React.createRef();
+    });
+  }
+
   static propTypes = {
     databases: PropTypes.array,
     hasSampleDataset: PropTypes.bool,
@@ -59,9 +67,9 @@ export default class DatabaseList extends Component {
     deletionError: PropTypes.object,
   };
 
-  componentWillReceiveProps(newProps) {
+  UNSAFE_componentWillReceiveProps(newProps) {
     if (!this.props.created && newProps.created) {
-      this.refs.createdDatabaseModal.open();
+      this.createdDatabaseModal.current.open();
     }
   }
 
@@ -130,16 +138,16 @@ export default class DatabaseList extends Component {
                         ) : (
                           <td className="Table-actions">
                             <ModalWithTrigger
-                              ref={"deleteDatabaseModal_" + database.id}
+                              ref={this["deleteDatabaseModal_" + database.id]}
                               triggerClasses="Button Button--danger"
                               triggerElement={t`Delete`}
                             >
                               <DeleteDatabaseModal
                                 database={database}
                                 onClose={() =>
-                                  this.refs[
+                                  this[
                                     "deleteDatabaseModal_" + database.id
-                                  ].close()
+                                  ].current.close()
                                 }
                                 onDelete={() =>
                                   this.props.deleteDatabase(database.id)
@@ -185,11 +193,14 @@ export default class DatabaseList extends Component {
             </div>
           ) : null}
         </section>
-        <ModalWithTrigger ref="createdDatabaseModal" isInitiallyOpen={created}>
+        <ModalWithTrigger
+          ref={this.createdDatabaseModal}
+          isInitiallyOpen={created}
+        >
           <CreatedDatabaseModal
             databaseId={parseInt(created)}
-            onDone={() => this.refs.createdDatabaseModal.toggle()}
-            onClose={() => this.refs.createdDatabaseModal.toggle()}
+            onDone={() => this.createdDatabaseModal.current.toggle()}
+            onClose={() => this.createdDatabaseModal.current.toggle()}
           />
         </ModalWithTrigger>
       </div>

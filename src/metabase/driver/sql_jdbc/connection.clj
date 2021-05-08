@@ -38,12 +38,12 @@
   powering Cards and the sync process, which are less sensitive to overhead than something like the application DB.
 
   Drivers that need to override the default properties below can provide custom implementations of this method."
-  {:arglists '([driver])}
+  {:arglists '([driver database])}
   driver/dispatch-on-initialized-driver
   :hierarchy #'driver/hierarchy)
 
 (defmethod data-warehouse-connection-pool-properties :default
-  [_]
+  [driver database]
   { ;; only fetch one new connection at a time, rather than batching fetches (default = 3 at a time). This is done in
    ;; interest of minimizing memory consumption
    "acquireIncrement"             1
@@ -75,18 +75,23 @@
    ;; Connections acquired are no longer needed. If maxIdleTime is set, maxIdleTimeExcessConnections should be smaller
    ;; if the parameter is to have any effect.
    ;;
-   ;; Kill idle connections above the minPoolSize after 15 minutes.
-   "maxIdleTimeExcessConnections" (* 15 60)})
+   ;; Kill idle connections above the minPoolSize after 5 minutes.
+   "maxIdleTimeExcessConnections" (* 5 60)
+   ;; Set the data source name so that the c3p0 JMX bean has a useful identifier
+   "dataSourceName"               (format "db-%d-%s-%s" (u/the-id database) (name driver) (-> database :details :db))})
 
 (defn- create-pool!
   "Create a new C3P0 `ComboPooledDataSource` for connecting to the given `database`."
   [{:keys [id details], driver :engine, :as database}]
   {:pre [(map? database)]}
   (log/debug (u/format-color 'cyan (trs "Creating new connection pool for {0} database {1} ..." driver id)))
-  (let [details-with-tunnel (ssh/include-ssh-tunnel details) ;; If the tunnel is disabled this returned unchanged
+  (let [details-with-tunnel (driver/incorporate-ssh-tunnel-details driver details) ;; If the tunnel is disabled this returned unchanged
         spec                (connection-details->spec driver details-with-tunnel)
-        properties          (data-warehouse-connection-pool-properties driver)]
-    (connection-pool/connection-pool-spec spec properties)))
+        properties          (data-warehouse-connection-pool-properties driver database)]
+    (merge
+      (connection-pool/connection-pool-spec spec properties)
+      ;; also capture entries related to ssh tunneling for later use
+      (select-keys spec [:tunnel-enabled :tunnel-session :tunnel-tracker :tunnel-entrance-port :tunnel-entrance-host]))))
 
 (defn- destroy-pool! [database-id pool-spec]
   (log/debug (u/format-color 'red (trs "Closing old connection pool for database {0} ..." database-id)))
@@ -112,12 +117,21 @@
         (destroy-pool! database-id old-pool-spec))))
   nil)
 
+(defn invalidate-pool-for-db!
+  "Invalidates the connection pool for the given database by closing it and removing it from the cache."
+  [database]
+  (set-pool! (u/the-id database) nil))
+
 (defn notify-database-updated
   "Default implementation of `driver/notify-database-updated` for JDBC SQL drivers. We are being informed that a
   `database` has been updated, so lets shut down the connection pool (if it exists) under the assumption that the
   connection details have changed."
   [database]
-  (set-pool! (u/get-id database) nil))
+  (invalidate-pool-for-db! database))
+
+(defn- log-ssh-tunnel-reconnect-msg! [db-id]
+    (log/warn (u/format-color 'red (trs "ssh tunnel for database {0} looks closed; marking pool invalid to reopen it"
+                                        db-id))))
 
 (defn db->pooled-connection-spec
   "Return a JDBC connection spec that includes a cp30 `ComboPooledDataSource`. These connection pools are cached so we
@@ -126,10 +140,23 @@
   (cond
     ;; db-or-id-or-spec is a Database instance or an integer ID
     (u/id db-or-id-or-spec)
-    (let [database-id (u/get-id db-or-id-or-spec)]
+    (let [database-id (u/the-id db-or-id-or-spec)
+          get-fn      (fn [db-id log-tunnel-check]
+                        (when-let [details (get @database-id->connection-pool db-id)]
+                          (cond (nil? (:tunnel-session details))
+                                ;; no tunnel in use; valid
+                                details
+                                (ssh/ssh-tunnel-open? details)
+                                ;; tunnel in use, and open; valid
+                                details
+                                :default
+                                ;; tunnel in use, and not open; invalid
+                                (do (when log-tunnel-check
+                                      (log-ssh-tunnel-reconnect-msg! db-id))
+                                    nil))))]
       (or
        ;; we have an existing pool for this database, so use it
-       (get @database-id->connection-pool database-id)
+       (get-fn database-id true)
        ;; Even tho `set-pool!` will properly shut down old pools if two threads call this method at the same time, we
        ;; don't want to end up with a bunch of simultaneous threads creating pools only to have them destroyed the
        ;; very next instant. This will cause their queries to fail. Thus we should do the usual locking here and make
@@ -137,7 +164,7 @@
        (locking database-id->connection-pool
          (or
           ;; check if another thread created the pool while we were waiting to acquire the lock
-          (get @database-id->connection-pool database-id)
+          (get-fn database-id false)
           ;; create a new pool and add it to our cache, then return it
           (let [db (or (db/select-one [Database :id :engine :details] :id database-id)
                        (throw (ex-info (tru "Database {0} does not exist." database-id)
@@ -157,7 +184,6 @@
                     ;; don't log the actual spec lest we accidentally expose credentials
                     {:input (class db-or-id-or-spec)}))))
 
-
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                             metabase.driver impls                                              |
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -166,7 +192,7 @@
   "Return an appropriate JDBC connection spec to test whether a set of connection details is valid (i.e., implementing
   `can-connect?`)."
   [driver details]
-  (let [details-with-tunnel (ssh/include-ssh-tunnel details)]
+  (let [details-with-tunnel (driver/incorporate-ssh-tunnel-details driver details)]
     (connection-details->spec driver details-with-tunnel)))
 
 (defn can-connect-with-spec?

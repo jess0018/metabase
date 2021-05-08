@@ -21,6 +21,7 @@
 - [Adding filters to dashboards](08-dashboard-filters.md)
 - [Making dashboards interactive](interactive-dashboards.md)
 - [Creating dashboard charts with multiple series](09-multi-series-charting.md)
+- [Setting up dashboard subscriptions](dashboard-subscriptions.md)
 - [Using Pulses for daily emails](10-pulses.md)
 - [Get answers in Slack with Metabot](11-metabot.md)
 
@@ -32,5 +33,6 @@
 - [Referencing saved question in queries](referencing-saved-questions-in-queries.md)
 - [Getting automatic insights with X-rays](14-x-rays.md)
 - [Setting and getting alerts](15-alerts.md)
+- [Editing your account settings](account-settings.md)
 
 Let's get started with an overview of [What Metabase does](01-what-is-metabase.md).

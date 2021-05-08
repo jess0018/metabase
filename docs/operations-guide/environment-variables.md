@@ -760,7 +760,7 @@ Set a minimum password length to increase security for regular logins. This only
 Type: string<br>
 Default: `"plugins"`
 
-Path of the "plugins" directory, which is used for the Metabase database drivers. The path should be to a writable directory. When using JAR, the default directory is `plugins`, created in the same location as the JAR file. When using Docker, the default directory is `/plugins`.
+Path of the "plugins" directory, which is used to store the Metabase database drivers. The user who is running Metabase should have permission to write to the directory. When running the JAR, the default directory is `plugins`, created in the same location as the JAR file. When running Docker, the default directory is `/plugins`.
 
 The location is where custom third-party drivers should be added. Then Metabase will load the driver on startup, which can be verified in the log.
 
@@ -813,6 +813,14 @@ Default: `false`<br>
 Since: 0.36.0
 
 Force all traffic to use HTTPS via a redirect, if the site URL is HTTPS. Related [MB_SITE_URL](#mb_site_url)
+
+#### `MB_REDSHIFT_FETCH_SIZE`
+
+Type: integer<br>
+Default: `5000`
+
+Controls the fetch size used for Redshift queries (in `PreparedStatement`), via the `defaultRowFetchSize` JDBC URL
+parameter.
 
 #### `MB_REPORT_TIMEZONE`
 
@@ -1004,6 +1012,13 @@ Type: string<br>
 Default: `X-Forwarded-For`
 
 Identify the source of HTTP requests by this header's value, instead of its remote address. Related to [MB_DISABLE_SESSION_THROTTLE](#mb_disable_session_throttle).
+
+#### `MB_SSH_HEARTBEAT_INTERVAL_SEC`
+
+Type: integer<br>
+Default: `180`
+
+Controls how often the heartbeats are sent when an SSH tunnel is established (in seconds).
 
 #### `MB_SSL_CERTIFICATE_PUBLIC_KEY`
 

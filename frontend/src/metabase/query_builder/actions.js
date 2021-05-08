@@ -1,4 +1,3 @@
-/*@flow weak*/
 import { fetchAlertsForQuestion } from "metabase/alert/alert";
 
 declare var ace: any;
@@ -30,7 +29,9 @@ import { isPK } from "metabase/lib/types";
 import Utils from "metabase/lib/utils";
 import { defer } from "metabase/lib/promise";
 import Question from "metabase-lib/lib/Question";
+import { FieldDimension } from "metabase-lib/lib/Dimension";
 import { cardIsEquivalent, cardQueryIsEquivalent } from "metabase/meta/Card";
+import { normalize } from "cljs/metabase.mbql.js";
 
 import {
   getCard,
@@ -338,8 +339,17 @@ export const initializeQB = (location, params) => {
     if (params.cardId || serializedCard) {
       // existing card being loaded
       try {
-        // if we have a serialized card then unpack it and use it
-        card = serializedCard ? deserializeCardFromUrl(serializedCard) : {};
+        // if we have a serialized card then unpack and use it
+        if (serializedCard) {
+          card = deserializeCardFromUrl(serializedCard);
+
+          // if serialized query has database we normalize syntax to support older mbql
+          if (card.dataset_query.database != null) {
+            card.dataset_query = normalize(card.dataset_query);
+          }
+        } else {
+          card = {};
+        }
 
         // load the card either from `cardId` parameter or the serialized card
         if (params.cardId) {
@@ -1181,9 +1191,10 @@ export const followForeignKey = createThunkAction(FOLLOW_FOREIGN_KEY, fk => {
     const newCard = startNewCard("query", card.dataset_query.database);
 
     newCard.dataset_query.query["source-table"] = fk.origin.table.id;
+    const field = new FieldDimension(fk.origin.id);
     newCard.dataset_query.query.filter = [
       "and",
-      ["=", fk.origin.id, originValue],
+      ["=", field.mbql(), originValue],
     ];
 
     // run it
@@ -1235,7 +1246,6 @@ export const loadObjectDetailFKReferences = createThunkAction(
           ) {
             info["value"] = result.data.rows[0][0];
           } else {
-            // $FlowFixMe
             info["value"] = "Unknown";
           }
         } catch (error) {
@@ -1295,7 +1305,7 @@ export const viewNextObjectDetail = () => {
     const question = getQuestion(getState());
     const filter = question.query().filters()[0];
 
-    const newFilter = ["=", filter[1], filter[2] + 1];
+    const newFilter = ["=", filter[1], parseInt(filter[2]) + 1];
 
     dispatch.action(VIEW_NEXT_OBJECT_DETAIL);
 
@@ -1324,7 +1334,7 @@ export const viewPreviousObjectDetail = () => {
       return false;
     }
 
-    const newFilter = ["=", filter[1], filter[2] - 1];
+    const newFilter = ["=", filter[1], parseInt(filter[2]) - 1];
 
     dispatch.action(VIEW_PREVIOUS_OBJECT_DETAIL);
 

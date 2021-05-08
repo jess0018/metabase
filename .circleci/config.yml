@@ -5,37 +5,24 @@ version: 2.1
 ########################################################################################################################
 
 executors:
-  # Basic executor with git and bash and not much else.
-  basic:
-    working_directory: /home/circleci/metabase/metabase/
-    docker:
-      # CircleCI base image
-      - image: cimg/base:2020.01
-
-  clojure:
-    working_directory: /home/circleci/metabase/metabase/
-    docker:
-      - image: circleci/clojure:lein-2.8.1
-
-  node:
-    working_directory: /home/circleci/metabase/metabase/
-    docker:
-      # - image: circleci/node:7-browsers
-      - image: circleci/clojure:lein-2.8.1-node-browsers
-
+  # Our brand new builder
   clojure-and-node:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
 
-  # This is a special image that is based on clojure-and-node but includes extras like gettext and the Clojure CLI
-  # tools. See https://github.com/metabase/metabase-docker-ci for more information. You shouldn't use this image
-  # unless you need the extra stuff -- because it's not an official Circle image, the extra layers won't get cached
-  # and it might take longer to spin this up.
-  metabase-ci:
+  # CircleCI base (Lein 2.9.5) + Node + Headless browsers + Clojure CLI - big one
+  # Maildev runs by default with all Cypress tests
+  clojure-and-node-and-browsers:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: metabase/ci:2020-11-30
+      - image: circleci/clojure:lein-2.9.5-node-browsers
+      - image: maildev/maildev
+
+  java-8:
+    working_directory: /home/circleci/metabase/metabase/
+    docker:
+      - image: circleci/clojure:openjdk-8-lein-2.9.5-buster
 
   # Java 11 tests also test Metabase with the at-rest encryption enabled. See
   # https://metabase.com/docs/latest/operations-guide/encrypting-database-details-at-rest.html for an explanation of
@@ -43,14 +30,19 @@ executors:
   java-11:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:openjdk-11-lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_ENCRYPTION_SECRET_KEY: Orw0AAyzkO/kPTLJRxiyKoBHXa/d6ZcO+p+gpZO/wSQ=
+
+  java-16:
+    working_directory: /home/circleci/metabase/metabase/
+    docker:
+      - image: circleci/clojure:openjdk-16-lein-2.9.5-buster
 
   postgres-9-6:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: postgres
           MB_DB_PORT: 5432
@@ -66,7 +58,7 @@ executors:
   postgres-latest:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: postgres
           MB_DB_PORT: 5432
@@ -74,7 +66,7 @@ executors:
           MB_DB_DBNAME: metabase_test
           MB_DB_USER: metabase_test
           MB_POSTGRESQL_TEST_USER: metabase_test
-      - image: postgres:latest
+      - image: circleci/postgres:latest
         environment:
           POSTGRES_USER: metabase_test
           POSTGRES_DB: metabase_test
@@ -83,7 +75,7 @@ executors:
   mysql-5-7:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: mysql
           MB_DB_HOST: localhost
@@ -96,7 +88,7 @@ executors:
   mysql-latest:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: mysql
           MB_DB_HOST: localhost
@@ -109,7 +101,7 @@ executors:
   mariadb-10-2:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: mysql
           MB_DB_HOST: localhost
@@ -122,30 +114,30 @@ executors:
   mariadb-latest:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_DB_TYPE: mysql
           MB_DB_HOST: localhost
           MB_DB_PORT: 3306
-          MB_DB_DBNAME: metabase_test
+          MB_DB_DBNAME: circle_test
           MB_DB_USER: root
           MB_MYSQL_TEST_USER: root
-      - image: mariadb:latest
+      - image: circleci/mariadb:latest
         environment:
-          MYSQL_DATABASE: metabase_test
-          MYSQL_USER: root
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          # MYSQL_DATABASE: metabase_test
+          # MYSQL_USER: root
+          # MYSQL_ALLOW_EMPTY_PASSWORD: yes
 
   mongo:
      working_directory: /home/circleci/metabase/metabase/
      docker:
-       - image: circleci/clojure:lein-2.8.1
+       - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
        - image: circleci/mongo:4.0
 
   presto:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
       - image: metabase/presto-mb-ci
         environment:
           JAVA_TOOL_OPTIONS: "-Xmx1g"
@@ -153,19 +145,19 @@ executors:
   sparksql:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
       - image: metabase/spark:2.1.1
 
   vertica:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
       - image: sumitchawla/vertica
 
   sqlserver:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
         environment:
           MB_SQLSERVER_TEST_HOST: localhost
           MB_SQLSERVER_TEST_PASSWORD: 'P@ssw0rd'
@@ -174,24 +166,38 @@ executors:
         environment:
           ACCEPT_EULA: Y
           SA_PASSWORD: 'P@ssw0rd'
+          MSSQL_MEMORY_LIMIT_MB: 1024
+
+  druid:
+    working_directory: /home/circleci/metabase/metabase/
+    docker:
+      - image: metabase/ci:lein-2.9.5-clojure-1.10.3.814
+      - image: metabase/druid:0.20.2
+        environment:
+          CLUSTER_SIZE: nano-quickstart
+    # Run Docker images with 8GB or RAM instead of the default 4GB for medium instances. The Druid Docker image runs
+    # OOM all the time with the default medium size.
+    resource_class: large
+
 
   fe-mongo-4:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.9.5-node-browsers
       - image: metabase/qa-databases:mongo-sample-4.0
 
   fe-postgres-12:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.9.5-node-browsers
       - image: metabase/qa-databases:postgres-sample-12
 
   fe-mysql-8:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.9.5-node-browsers
       - image: metabase/qa-databases:mysql-sample-8
+
 
 ########################################################################################################################
 #                                             MAP FRAGMENTS AND CACHE KEYS                                             #
@@ -217,7 +223,7 @@ default_parameters: &Params
 # uncontrollably since old deps would continue to accumulate. Restoring big caches is really slow in Circle. It's
 # actually faster to recreate the deps cache from scratch whenever we need to which keeps the size down.
 cache-key-backend-deps: &CacheKeyBackendDeps
-  key: v1-{{ checksum ".CACHE-PREFIX" }}-be-deps-{{ checksum "project.clj" }}
+  key: v1-{{ checksum ".CACHE-PREFIX" }}-be-deps-{{ checksum "project.clj" }}-{{ checksum ".SCRIPTS-DEPS-CHECKSUMS" }}
 
 cache-key-frontend-deps: &CacheKeyFrontendDeps
   key: v1-{{ checksum ".CACHE-PREFIX" }}-fe-deps-{{ checksum "yarn.lock" }}
@@ -485,17 +491,25 @@ jobs:
 ########################################################################################################################
 
   checkout:
-    executor: basic
+    executor: clojure-and-node
     steps:
       - checkout
       # .BACKEND-CHECKSUMS is every Clojure source file as well as dependency files like deps.edn and plugin manifests
       - create-checksum-file:
           filename: .BACKEND-CHECKSUMS
-          find-args: ". -type f -name '*.clj' -or -name '*.java' -or -name deps.edn -or -name metabase-plugin.yaml"
-      # .FRONTEND-CHECKSUMS is every JavaScript source file as well as dependency files like yarn.lock
+          find-args: ". -type f -name '*.clj' -or -name '*.cljc' -or -name '*.java' -or -name '*.edn' -or -name '*.yaml' -or -name sample-dataset.db.mv.db"
+      # .SCRIPTS-DEPS-CHECKSUMS is all the deps.edn files inside ./bin
+      - create-checksum-file:
+          filename: .SCRIPTS-DEPS-CHECKSUMS
+          find-args: "bin -type f -name 'deps.edn'"
+      # .FRONTEND-CHECKSUMS is every JavaScript source file as well as dependency files like yarn.lock (sans all frontend test files)
       - create-checksum-file:
           filename: .FRONTEND-CHECKSUMS
-          find-args: ". -type f -name '*.js' -or -name '*.jsx' -or -name '*.json' -or -name yarn.lock -or -name sample-dataset.db.mv.db"
+          find-args: ". -type f '(' -name '*.js' -or -name '*.jsx' -or -name '*.cljc' -or -name '*.cljs' -or -name '*.json' -or -name yarn.lock -or -name sample-dataset.db.mv.db ')' ! -path '*/frontend/test/*'"
+      # .E2E-TESTS-CHECKSUMS is every `*.cy.spes.js` file as well as e2e support JavaScript files
+      - create-checksum-file:
+          filename: .E2E-TESTS-CHECKSUMS
+          find-args: "./frontend/test/ -name '*.cy.*' -or -type f -path '*/__support__/e2e/*'"
       # .MODULES-CHECKSUMS is every Clojure source file in the modules/ directory as well as plugin manifests
       - create-checksum-file:
           filename: .MODULES-CHECKSUMS
@@ -524,52 +538,9 @@ jobs:
           paths:
             - metabase/metabase
 
-  yaml-linter:
-    executor: node
-    steps:
-      - attach-workspace
-      - create-checksum-file:
-          filename: .YAML-CHECKSUMS
-          find-args: ". -type f -name '*.yaml' -or -name '*.yml'"
-      - run-on-change:
-          # package.json is included in the cache key in case the yamllint dependency changes
-          checksum: '{{ checksum ".YAML-CHECKSUMS" }}-{{ checksum "package.json" }}'
-          steps:
-            - run-yarn-command:
-                command-name: Lint YAML files
-                command: lint-yaml `find resources -name '*.yaml' -or -name '*.yml'`
-
-  verify-i18n-files:
-    executor: metabase-ci
-    steps:
-      - attach-workspace
-      - create-checksum-file:
-          filename: .I18N-CHECKSUMS
-          find-args: "locales -type f -name '*.po'"
-      # In case the i18n scripts themselves change
-      - create-checksum-file:
-          filename: .I18N-SCRIPT-CHECKSUMS
-          find-args: "bin/i18n -type f"
-      - run-on-change:
-          checksum: '{{ checksum ".I18N-CHECKSUMS" }}-{{ checksum ".I18N-SCRIPT-CHECKSUMS" }}'
-          steps:
-            - restore-fe-deps-cache
-            - run:
-                name: Check i18n tags/make sure template can be built
-                # fix OOM when running -- see https://stackoverflow.com/a/59572966/1198455
-                # without this option, sometimes this step will fail with an OOM error.
-                environment:
-                  NODE_OPTIONS: '--max-old-space-size=2048'
-                command: ./bin/i18n/update-translation-template
-                no_output_timeout: 2m
-            - run:
-                name: Verify i18n translations (.po files)
-                command: ./bin/i18n/build-translation-resources
-                no_output_timeout: 2m
-
   check-migrations:
     executor:
-      metabase-ci
+      clojure-and-node
     steps:
       - attach-workspace
       - create-checksum-file:
@@ -592,7 +563,7 @@ jobs:
 ########################################################################################################################
 
   be-deps:
-    executor: clojure
+    executor: clojure-and-node
     parameters:
       <<: *Params
     steps:
@@ -600,10 +571,12 @@ jobs:
       # This step is pretty slow, even with the cache, so only run it if project.clj has changed
       # TODO -- we should cache the build script deps as well, and driver deps?
       - run-on-change:
-          checksum: '{{ checksum "project.clj" }}'
+          checksum: '{{ checksum "project.clj" }}-{{ checksum ".SCRIPTS-DEPS-CHECKSUMS" }}'
           steps:
             - restore-be-deps-cache
-            - run: lein with-profile +include-all-drivers,+cloverage,+junit,+<< parameters.edition >> deps
+            - run: lein with-profile +include-all-drivers,+cloverage,+junit,+dev,+<< parameters.edition >> deps
+            - run: |
+                cd /home/circleci/metabase/metabase/bin/build-mb && clojure -P
             - save_cache:
                 name: Cache backend dependencies
                 <<: *CacheKeyBackendDeps
@@ -614,7 +587,7 @@ jobs:
     parameters:
       e:
         type: executor
-        default: clojure
+        default: clojure-and-node
       before-steps:
         type: steps
         default: []
@@ -651,7 +624,7 @@ jobs:
                 edition: << parameters.edition >>
 
   be-linter-reflection-warnings:
-    executor: clojure
+    executor: clojure-and-node
     steps:
       - attach-workspace
       - run-on-change:
@@ -667,7 +640,7 @@ jobs:
     parameters:
       e:
         type: executor
-        default: clojure
+        default: clojure-and-node
       driver:
         type: string
       timeout:
@@ -677,6 +650,9 @@ jobs:
         type: steps
         default: []
       description:
+        type: string
+        default: ""
+      extra-env:
         type: string
         default: ""
     executor: << parameters.e >>
@@ -692,13 +668,13 @@ jobs:
                 name: Test << parameters.driver >> driver << parameters.description >>
                 environment:
                   DRIVERS: << parameters.driver >>
-                command: lein with-profile +ci,+junit,+ee test
+                command: << parameters.extra-env >> lein with-profile +ci,+junit,+ee test
                 no_output_timeout: << parameters.timeout >>
             - store_test_results:
                 path: /home/circleci/metabase/metabase/target/junit
 
   test-build-scripts:
-    executor: metabase-ci
+    executor: clojure-and-node
     steps:
       - attach-workspace
       - run-on-change:
@@ -714,6 +690,11 @@ jobs:
                 name: Run build-drivers build script tests
                 command: |
                   cd /home/circleci/metabase/metabase/bin/build-drivers && clojure -M:test
+                no_output_timeout: 15m
+            - run:
+                name: Run i18n script tests
+                command: |
+                  cd /home/circleci/metabase/metabase/bin/i18n && clojure -M:test
                 no_output_timeout: 15m
             - run:
                 name: Run build-mb build script tests
@@ -737,7 +718,7 @@ jobs:
 ########################################################################################################################
 
   fe-deps:
-    executor: node
+    executor: clojure-and-node
     steps:
       - attach-workspace
       # This step is *really* slow, so we can skip it if yarn.lock hasn't changed since last time we ran it
@@ -758,26 +739,18 @@ jobs:
                   - /home/circleci/metabase/metabase/node_modules
                   - /home/circleci/.cache/Cypress
 
-  fe-tests-unit:
-    executor: node
+  shared-tests-cljs:
+    executor: clojure-and-node
     steps:
       - run-yarn-command:
-          command-name: Run frontend unit tests
-          command: run test-unit
-          skip-when-no-change: true
-
-  fe-tests-timezones:
-    executor: node
-    steps:
-      - run-yarn-command:
-          command-name: Run frontend timezone tests
-          command: run test-timezones
+          command-name: Run Cljs tests for shared/ code
+          command: run test-cljs
           skip-when-no-change: true
 
   # Unlike the other build-uberjar steps, this step should be run once overall and the results can be shared between
   # OSS and EE uberjars.
   build-uberjar-drivers:
-    executor: metabase-ci
+    executor: clojure-and-node
     parameters:
       <<: *Params
     steps:
@@ -829,13 +802,14 @@ jobs:
   build-uberjar-frontend:
     parameters:
       <<: *Params
-    executor: metabase-ci
+    executor: clojure-and-node
     steps:
       - attach-workspace
       - run-on-change:
           checksum: '{{ checksum ".FRONTEND-CHECKSUMS" }}'
           steps:
             - restore-fe-deps-cache
+            - restore-be-deps-cache
             - run:
                 name: Build frontend
                 environment:
@@ -852,7 +826,7 @@ jobs:
   build-uberjar:
     parameters:
       <<: *Params
-    executor: metabase-ci
+    executor: clojure-and-node
     steps:
       - attach-workspace
       - run-on-change:
@@ -897,17 +871,13 @@ jobs:
     parameters:
       e:
         type: executor
-        default: clojure-and-node
+        default: clojure-and-node-and-browsers
       cypress-group:
         type: string
-      only-single-database:
-        type: boolean
-        default: false
-      test-files-location:
+      source-folder:
         type: string
         default: ""
-      # Node number e.g. 1
-      node:
+      test-files:
         type: string
         default: ""
       before-steps:
@@ -922,7 +892,7 @@ jobs:
     steps:
       - attach-workspace
       - run-on-change:
-          checksum: '{{ checksum ".BACKEND-CHECKSUMS" }}-{{ checksum ".FRONTEND-CHECKSUMS" }}'
+          checksum: '{{ checksum ".BACKEND-CHECKSUMS" }}-{{ checksum ".FRONTEND-CHECKSUMS" }}-{{ checksum ".E2E-TESTS-CHECKSUMS" }}'
           steps:
             - run-yarn-command:
                 command-name: Run Cypress tests
@@ -932,47 +902,12 @@ jobs:
                       <<: *CacheKeyUberjar
                   - steps: << parameters.before-steps >>
                 command: |
-                  run test-cypress-no-build <<# parameters.only-single-database >> --testFiles << parameters.test-files-location >> <</ parameters.only-single-database >>
+                  run test-cypress-no-build <<# parameters.test-files >> --spec << parameters.test-files >> <</ parameters.test-files >> --folder << parameters.source-folder >>
                 after-steps:
                   - store_artifacts:
                       path: /home/circleci/metabase/metabase/cypress
                   - store_test_results:
                       path: cypress/results
-
-  fe-tests-cypress-smoketest:
-    parameters:
-      e:
-        type: executor
-        default: clojure-and-node
-      cypress-group:
-        type: string
-      <<: *Params
-    executor: << parameters.e >>
-    environment:
-      CYPRESS_GROUP: << parameters.cypress-group >>
-      DISPLAY: ""
-    steps:
-      - run-yarn-command:
-          command-name: Run Cypress tests
-          command: run test-cypress-smoketest
-          before-steps:
-            - restore_cache:
-                name: Restore cached uberjar built in previous step
-                <<: *CacheKeyUberjar
-      - store_artifacts:
-          path: /home/circleci/metabase/metabase/cypress
-      - store_test_results:
-          path: cypress/results
-
-########################################################################################################################
-#                                                   DEPLOYMENT, ETC.                                                   #
-########################################################################################################################
-
-  deploy-master:
-    executor: clojure
-    steps:
-      - attach-workspace
-      - run: ./bin/deploy-webhook $DEPLOY_WEBHOOK
 
 
 ########################################################################################################################
@@ -991,14 +926,6 @@ workflows:
     jobs:
       - checkout
 
-      - yaml-linter:
-          requires:
-            - fe-deps
-
-      - verify-i18n-files:
-          requires:
-            - fe-deps
-
       - check-migrations:
           requires:
             - checkout
@@ -1011,6 +938,7 @@ workflows:
           name: be-tests-<< matrix.edition >>
           requires:
             - be-deps
+          e: java-8
           lein-command: with-profile +junit test
           skip-when-no-change: true
           <<: *Matrix
@@ -1025,32 +953,13 @@ workflows:
           <<: *Matrix
 
       - lein:
-          name: be-linter-eastwood
+          name: be-tests-java-16-<< matrix.edition >>
           requires:
             - be-deps
-          lein-command: eastwood
+          e: java-16
+          lein-command: with-profile +junit test
           skip-when-no-change: true
-
-      - lein:
-          name: be-linter-docstring-checker
-          requires:
-            - be-deps
-          lein-command: docstring-checker
-          skip-when-no-change: true
-
-      - lein:
-          name: be-linter-namespace-decls
-          requires:
-            - be-deps
-          lein-command: check-namespace-decls
-          skip-when-no-change: true
-
-      - lein:
-          name: be-linter-bikeshed
-          requires:
-            - be-deps
-          lein-command: bikeshed
-          skip-when-no-change: true
+          <<: *Matrix
 
       - lein:
           name: be-linter-cloverage
@@ -1063,10 +972,6 @@ workflows:
                 command: bash <(curl -s https://codecov.io/bash)
           skip-when-no-change: true
 
-      - be-linter-reflection-warnings:
-          requires:
-            - be-deps
-
       - test-driver:
           name: be-tests-bigquery-ee
           requires:
@@ -1077,6 +982,7 @@ workflows:
           name: be-tests-druid-ee
           requires:
             - be-tests-ee
+          e: druid
           driver: druid
 
       - test-driver:
@@ -1109,6 +1015,18 @@ workflows:
           e:
             name: mysql-latest
           driver: mysql
+          # set up env vars for something named "MYSQL_SSL" to run MySQL SSL tests verifying connectivity with PEM cert
+          # they are deliberately given a different name to prevent them from affecting the regular test run against
+          # the configured MySQL instance, but there is one particular test (mysql-connect-with-ssl-and-pem-cert-test)
+          # that overrides the MB_MYSQL_TEST_* values with them
+          # the MYSQL_RDS_SSL_INSTANCE vars are secret and/or changeable, so they are defined in the CircleCI settings
+          extra-env: >-
+            MB_MYSQL_SSL_TEST_HOST=$MYSQL_RDS_SSL_INSTANCE_HOST
+            MB_MYSQL_SSL_TEST_SSL=true
+            MB_MYSQL_SSL_TEST_ADDITIONAL_OPTIONS='verifyServerCertificate=true'
+            MB_MYSQL_SSL_TEST_SSL_CERT="$(cat /home/circleci/metabase/metabase/resources/certificates/rds-combined-ca-bundle.pem)"
+            MB_MYSQL_SSL_TEST_USER=metabase
+            MB_MYSQL_SSL_TEST_PASSWORD=$MYSQL_RDS_SSL_INSTANCE_PASSWORD
 
       - test-driver:
           name: be-tests-mariadb-ee
@@ -1137,6 +1055,12 @@ workflows:
                 source: ORACLE_JDBC_JAR
                 dest: ojdbc8.jar
           driver: oracle
+          extra-env: >-
+            MB_ORACLE_SSL_TEST_SSL=true
+            MB_ORACLE_SSL_TEST_PORT=2484
+            JVM_OPTS="-Djavax.net.ssl.trustStore=/home/circleci/metabase/metabase/resources/certificates/cacerts_with_RDS_root_ca.jks
+                      -Djavax.net.ssl.trustStoreType=JKS
+                      -Djavax.net.ssl.trustStorePassword=metabase $JAVA_OPTS"
 
       - test-driver:
           name: be-tests-postgres-ee
@@ -1238,96 +1162,123 @@ workflows:
       - fe-deps:
           requires:
             - checkout
-      - fe-tests-unit:
-          requires:
-            - fe-deps
-      - fe-tests-timezones:
+      - shared-tests-cljs:
           requires:
             - fe-deps
 
       - fe-tests-cypress:
           matrix:
             parameters:
-              node: ["1"]
               edition: ["ee", "oss"]
-          name: fe-tests-cypress-<< matrix.node >>-<< matrix.edition >>
+          name: e2e-tests-admin-<< matrix.edition >>
           requires:
             - build-uberjar-<< matrix.edition >>
-          cypress-group: "default-<< matrix.edition >>"
+          cypress-group: "admin-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/admin
 
       - fe-tests-cypress:
-          name: fe-tests-cypress-mongo-4-<< matrix.edition >>
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-collections-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "collections-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/collections
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-dashboard-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "dashboard-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/dashboard
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-onboarding-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "onboarding-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/onboarding
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-native-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "native-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/native
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-question-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "question-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/question
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-sharing-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "sharing-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/sharing
+
+      - fe-tests-cypress:
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+          name: e2e-tests-visualizations-<< matrix.edition >>
+          requires:
+            - build-uberjar-<< matrix.edition >>
+          cypress-group: "visualizations-<< matrix.edition >>"
+          source-folder: frontend/test/metabase/scenarios/visualizations
+
+      - fe-tests-cypress:
+          name: e2e-tests-mongo-4-<< matrix.edition >>
           requires:
             - build-uberjar-<< matrix.edition >>
           e: fe-mongo-4
           cypress-group: "mongo"
-          only-single-database: true
-          test-files-location: frontend/test/metabase-db/mongo
+          source-folder: frontend/test/metabase-db/mongo
           before-steps:
             - wait-for-port:
                 port: 27017
           <<: *Matrix
 
       - fe-tests-cypress:
-          name: fe-tests-cypress-postgres-12-<< matrix.edition >>
+          name: e2e-tests-postgres-12-<< matrix.edition >>
           requires:
             - build-uberjar-<< matrix.edition >>
           e: fe-postgres-12
           cypress-group: "postgres"
-          only-single-database: true
-          test-files-location: frontend/test/metabase-db/postgres
+          source-folder: frontend/test/metabase-db/postgres
           before-steps:
             - wait-for-port:
                 port: 5432
           <<: *Matrix
 
       - fe-tests-cypress:
-          name: fe-tests-cypres-mysql-8-<< matrix.edition >>
+          name: e2e-tests-mysql-8-<< matrix.edition >>
           requires:
             - build-uberjar-<< matrix.edition >>
           e: fe-mysql-8
           cypress-group: "mysql"
-          only-single-database: true
-          test-files-location: frontend/test/metabase-db/mysql
+          source-folder: frontend/test/metabase-db/mysql
           before-steps:
             - wait-for-port:
                 port: 3306
           <<: *Matrix
 
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 9 * * *"
-          filters:
-            branches:
-              only:
-                - master
-                - /release-*/
-    jobs:
-      - checkout
-
-      - be-deps:
-          requires:
-            - checkout
-
-      - fe-deps:
-          requires:
-            - checkout
-
-      # Build the OSS version of the uberjar.
-      - build-uberjar-drivers:
-          requires:
-            - be-deps
-      - build-uberjar-frontend:
-          requires:
-            - fe-deps
-      - build-uberjar:
-          requires:
-            - build-uberjar-drivers
-            - build-uberjar-frontend
-
-      - fe-tests-cypress-smoketest:
-          name: fe-tests-cypress-smoketest
-          requires:
-            - build-uberjar
-          cypress-group: "default"

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { Link, withRouter } from "react-router";
@@ -7,8 +8,8 @@ import InputBlurChange from "metabase/components/InputBlurChange";
 import Select, { Option } from "metabase/components/Select";
 import Button from "metabase/components/Button";
 import * as MetabaseCore from "metabase/lib/core";
-import { isNumericBaseType, isCurrency } from "metabase/lib/schema_metadata";
-import { TYPE, isa, isFK } from "metabase/lib/types";
+import { isCurrency } from "metabase/lib/schema_metadata";
+import { isFK } from "metabase/lib/types";
 import currency from "metabase/lib/currency";
 import { getGlobalSettingsForColumn } from "metabase/visualizations/lib/settings/column";
 
@@ -134,7 +135,7 @@ export class SemanticTypeAndTargetPicker extends Component {
     field: Field,
     updateField: Field => void,
     className?: string,
-    selectSeparator?: React$Element<any>,
+    selectSeparator?: React.Element,
   };
 
   handleChangeSemanticType = async ({ target: { value: semantic_type } }) => {
@@ -180,7 +181,7 @@ export class SemanticTypeAndTargetPicker extends Component {
   render() {
     const { field, className, selectSeparator } = this.props;
 
-    let semanticTypes = [
+    const semanticTypes = [
       ...MetabaseCore.field_semantic_types,
       {
         id: null,
@@ -188,10 +189,6 @@ export class SemanticTypeAndTargetPicker extends Component {
         section: t`Other`,
       },
     ];
-    // if we don't have a numeric base-type then prevent the options for unix timestamp conversion (#823)
-    if (!isNumericBaseType(field)) {
-      semanticTypes = semanticTypes.filter(f => !isa(f.id, TYPE.UNIXTimestamp));
-    }
 
     const showFKTargetSelect = isFK(field.semantic_type);
 

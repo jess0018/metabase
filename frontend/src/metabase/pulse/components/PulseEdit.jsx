@@ -1,4 +1,4 @@
-/* eslint "react/prop-types": "warn" */
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import { Box, Flex } from "grid-styled";
 import PropTypes from "prop-types";
@@ -41,6 +41,12 @@ export default class PulseEdit extends Component {
     goBack: PropTypes.func,
     initialCollectionId: PropTypes.number,
   };
+
+  constructor(props) {
+    super(props);
+
+    this.pulseInfo = React.createRef();
+  }
 
   componentDidMount() {
     this.props.setEditingPulse(
@@ -140,18 +146,18 @@ export default class PulseEdit extends Component {
         <div className="PulseEdit-header flex align-center border-bottom py3">
           <h1>{pulse && pulse.id != null ? t`Edit pulse` : t`New pulse`}</h1>
           <ModalWithTrigger
-            ref="pulseInfo"
+            ref={this.pulseInfo}
             className="Modal WhatsAPulseModal"
             triggerElement={t`What's a Pulse?`}
             triggerClasses="text-brand text-bold flex-align-right"
           >
-            <ModalContent onClose={() => this.refs.pulseInfo.close()}>
+            <ModalContent onClose={() => this.pulseInfo.current.close()}>
               <div className="mx4 mb4">
                 <WhatsAPulse
                   button={
                     <button
                       className="Button Button--primary"
-                      onClick={() => this.refs.pulseInfo.close()}
+                      onClick={() => this.pulseInfo.current.close()}
                     >{t`Got it`}</button>
                   }
                 />

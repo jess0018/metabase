@@ -7,14 +7,18 @@
      CREATE TABLE IF NOT EXISTS ... -- Good
      CREATE TABLE ...               -- Bad"
   (:require [cemerick.friend.credentials :as creds]
+            [cheshire.core :as json]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
+            [clojure.walk :as walk]
+            [medley.core :as m]
             [metabase.config :as config]
             [metabase.db.util :as mdb.u]
             [metabase.mbql.schema :as mbql.s]
             [metabase.models.card :refer [Card]]
             [metabase.models.collection :as collection :refer [Collection]]
             [metabase.models.dashboard :refer [Dashboard]]
+            [metabase.models.dashboard-card :refer [DashboardCard]]
             [metabase.models.database :refer [Database]]
             [metabase.models.field :refer [Field]]
             [metabase.models.humanization :as humanization]
@@ -122,9 +126,9 @@
 ;;; |                                                NEW TYPE SYSTEM                                                 |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-;; this is the old new type system. as of v30 these are migrated from a field named special_type to
+;; this is the old new type system. as of v39 these are migrated from a field named special_type to
 ;; semantic_type. These migrations target the world before this migration so they are left as is. The migrations talk
-;; about special_type as a column and a try/catch is introduced to the migration runner to allow migrations to
+;; about semantic_type as a column and a try/catch is introduced to the migration runner to allow migrations to
 ;; fail. It is opt in.
 (def ^:private ^:const old-special-type->new-type
     {"avatar"                 "type/AvatarURL"
@@ -141,8 +145,6 @@
      "name"                   "type/Name"
      "number"                 "type/Number"
      "state"                  "type/State"
-     "timestamp_milliseconds" "type/UNIXTimestampMilliseconds"
-     "timestamp_seconds"      "type/UNIXTimestampSeconds"
      "url"                    "type/URL"
      "zip_code"               "type/ZipCode"})
 
@@ -177,11 +179,11 @@
 (defmigration ^{:author "camsaul", :added "0.20.0", :catch? true} migrate-field-types
   (doseq [[old-type new-type] old-special-type->new-type]
     ;; migrate things like :timestamp_milliseconds -> :type/UNIXTimestampMilliseconds
-    (db/update-where! 'Field {:%lower.special_type (str/lower-case old-type)}
-      :special_type new-type)
+    (db/update-where! 'Field {:%lower.semantic_type (str/lower-case old-type)}
+      :semantic_type new-type)
     ;; migrate things like :UNIXTimestampMilliseconds -> :type/UNIXTimestampMilliseconds
-    (db/update-where! 'Field {:special_type (name (keyword new-type))}
-      :special_type new-type))
+    (db/update-where! 'Field {:semantic_type (name (keyword new-type))}
+      :semantic_type new-type))
   (doseq [[old-type new-type] old-base-type->new-type]
     ;; migrate things like :DateTimeField -> :type/DateTime
     (db/update-where! 'Field {:%lower.base_type (str/lower-case old-type)}
@@ -195,8 +197,8 @@
 (defmigration ^{:author "camsaul", :added "0.20.0", :catch? true} fix-invalid-field-types
   (db/update-where! 'Field {:base_type [:not-like "type/%"]}
     :base_type "type/*")
-  (db/update-where! 'Field {:special_type [:not-like "type/%"]}
-    :special_type nil))
+  (db/update-where! 'Field {:semantic_type [:not-like "type/%"]}
+    :semantic_type nil))
 
 ;; Copy the value of the old setting `-site-url` to the new `site-url` if applicable.  (`site-url` used to be stored
 ;; internally as `-site-url`; this was confusing, see #4188 for details) This has the side effect of making sure the
@@ -257,12 +259,12 @@
 ;; Since the meanings of things has changed we'll want to make sure we mark all Category fields as `list` as well so
 ;; their behavior doesn't suddenly change.
 
-;; Note that since v39 special_type became semantic_type. All of these migrations concern data from before this
+;; Note that since v39 semantic_type became semantic_type. All of these migrations concern data from before this
 ;; change. Therefore, the migration is set to `:catch? true` and the old name is used. If the column is semantic then
 ;; the data shouldn't be bad.
 (defmigration ^{:author "camsaul", :added "0.29.0", :catch? true} mark-category-fields-as-list
   (db/update-where! Field {:has_field_values nil
-                           :special_type     (mdb.u/isa :type/Category)
+                           :semantic_type     (mdb.u/isa :type/Category)
                            :active           true}
     :has_field_values "list"))
 
@@ -350,6 +352,118 @@
       (db/update-where! model {:collection_id nil}
         :collection_id (u/get-id new-collection)))))
 
+(defn- fix-click-through
+  "Fixes click behavior settings on dashcards, returns nil if no fix available. Format changed from:
+
+  `{... click click_link_template ...}` to `{... click_behavior { type linkType linkTemplate } ...}`
+
+  at the top level and
+  {... view_as link_template link_text ...} to `{ ... click_behavior { type linkType linkTemplate linkTextTemplate } ...}`
+
+  at the column_settings level. Scours the card to find all click behavior, reshapes it, and deep merges it into the
+  reshapen dashcard.  scour for all links in the card, fixup the dashcard and then merge in any new click_behaviors
+  from the card. See extensive tests for different scenarios.
+
+  We are in a migration so this returns nil if there is nothing to do so that it is filtered and we aren't running sql
+  statements that are replacing data for no purpose.
+
+  Merging the following click behaviors in order (later merges on top of earlier):
+  - fixed card click behavior
+  - fixed dash click behavior
+  - existing new style dash click behavior"
+  [{id :id card :card_visualization dashcard :dashcard_visualization}]
+  (let [existing-fixed (fn [settings]
+                         (-> settings
+                             (m/update-existing "column_settings"
+                                                (fn [column_settings]
+                                                  (m/map-vals
+                                                   #(select-keys % ["click_behavior"])
+                                                   column_settings)))
+                             ;; select click behavior top level and in column settings
+                             (u/select-non-nil-keys ["column_settings" "click_behavior"])))
+        fix-top-level  (fn [toplevel]
+                         (if (= (get toplevel "click") "link")
+                           (assoc toplevel
+                                  ;; add new shape top level
+                                  "click_behavior"
+                                  {"type"         (get toplevel "click")
+                                   "linkType"     "url"
+                                   "linkTemplate" (get toplevel "click_link_template")})
+                           toplevel))
+        fix-cols       (fn [column-settings]
+                         (reduce-kv
+                          (fn [m col field-settings]
+                            (assoc m col
+                                   ;; add the click stuff under the new click_behavior entry or keep the
+                                   ;; field settings as is
+                                   (if (and (= (get field-settings "view_as") "link")
+                                            (contains? field-settings "link_template"))
+                                     ;; remove old shape and add new shape under click_behavior
+                                     (assoc field-settings
+                                            "click_behavior"
+                                            {"type"             (get field-settings "view_as")
+                                             "linkType"         "url"
+                                             "linkTemplate"     (get field-settings "link_template")
+                                             "linkTextTemplate" (get field-settings "link_text")})
+                                     field-settings)))
+                          {}
+                          column-settings))
+        fixed-card     (-> (if (contains? dashcard "click")
+                             (dissoc card "click_behavior") ;; throw away click behavior if dashcard has click
+                             ;; behavior added
+                             (fix-top-level card))
+                           (update "column_settings" fix-cols) ;; fix columns and then select only the new shape from
+                           ;; the settings tree
+                           existing-fixed)
+        fixed-dashcard (update (fix-top-level dashcard) "column_settings" fix-cols)
+        final-settings (->> (m/deep-merge fixed-card fixed-dashcard (existing-fixed dashcard))
+                            ;; remove nils and empty maps _AFTER_ deep merging so that the shapes are
+                            ;; uniform. otherwise risk not fully clobbering an underlying form if the one going on top
+                            ;; doesn't have link text
+                            (walk/postwalk (fn [form]
+                                             (if (map? form)
+                                               (into {} (for [[k v] form
+                                                              :when (if (seqable? v)
+                                                                      ;; remove keys with empty maps. must be postwalk
+                                                                      (seq v)
+                                                                      ;; remove nils
+                                                                      (some? v))]
+                                                          [k v]))
+                                               form))))]
+    (when (not= final-settings dashcard)
+      {:id                     id
+       :visualization_settings final-settings})))
+
+(defn- parse-to-json [& ks]
+  (fn [x]
+    (reduce #(update %1 %2 json/parse-string)
+            x
+            ks)))
+
+(defmigration ^{:author "dpsutton" :added "0.38.1"} migrate-click-through
+  (transduce (comp (map (parse-to-json :card_visualization :dashcard_visualization))
+                   (map fix-click-through)
+                   (filter :visualization_settings))
+             (completing
+              (fn [_ {:keys [id visualization_settings]}]
+                (db/update! DashboardCard id :visualization_settings visualization_settings)))
+             nil
+             ;; flamber wrote a manual postgres migration that this faithfully recreates: see
+             ;; https://github.com/metabase/metabase/issues/15014
+             (db/query {:select [:dashcard.id
+                                 [:card.visualization_settings :card_visualization]
+                                 [:dashcard.visualization_settings :dashcard_visualization]]
+                        :from   [[:report_dashboardcard :dashcard]]
+                        :join   [[:report_card :card] [:= :dashcard.card_id :card.id]]
+                        :where  [:or
+                                 [:like
+                                  :card.visualization_settings "%\"link_template\":%"]
+                                 [:like
+                                  :card.visualization_settings "%\"click_link_template\":%"]
+                                 [:like
+                                  :dashcard.visualization_settings "%\"link_template\":%"]
+                                 [:like
+                                  :dashcard.visualization_settings "%\"click_link_template\":%"]]})))
 
 ;; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ;; !!                                                                                                               !!

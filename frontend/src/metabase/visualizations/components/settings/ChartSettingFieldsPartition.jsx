@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import cx from "classnames";
 import { t } from "ttag";
@@ -176,6 +177,7 @@ class ChartSettingFieldsPartition extends React.Component {
       <div>
         {this.props.partitions.map(({ name, title, columnFilter }, index) => (
           <Partition
+            key={index}
             className={cx("py2", { "border-top": index > 0 })}
             title={title}
             columnFilter={columnFilter}
@@ -235,6 +237,7 @@ class Partition extends React.Component {
         ) : (
           columns.map((col, index) => (
             <Column
+              key={index}
               partitionName={partitionName}
               column={col}
               index={index}

@@ -1,5 +1,3 @@
-/* @flow weak */
-
 import React from "react";
 
 import { PLUGIN_LANDING_PAGE } from "metabase/plugins";
@@ -258,6 +256,10 @@ export const getRoutes = store => (
         <Route path="metrics" component={MetricListContainer} />
         <Route path="metrics/:metricId" component={MetricDetailContainer} />
         <Route
+          path="metrics/:metricId/edit"
+          component={MetricDetailContainer}
+        />
+        <Route
           path="metrics/:metricId/questions"
           component={MetricQuestionsContainer}
         />
@@ -331,7 +333,6 @@ export const getRoutes = store => (
     <Route
       path="/_internal"
       getChildRoutes={(partialNextState, callback) =>
-        // $FlowFixMe: flow doesn't know about require.ensure
         require.ensure([], function(require) {
           callback(null, [require("metabase/internal/routes").default]);
         })
