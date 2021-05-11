@@ -684,14 +684,16 @@ Get Dashboard with ID.
 *  **`id`** 
 
 
-## `GET /api/dashboard/:id/params/:param-key/search/:prefix`
+## `GET /api/dashboard/:id/params/:param-key/search/:query`
 
-Fetch possible values of the parameter whose ID is `:param-key` that start with with `:prefix`. Optionally restrict
+Fetch possible values of the parameter whose ID is `:param-key` that contain `:query`. Optionally restrict
   these values by passing query parameters like `other-parameter=value` e.g.
 
-    ;; fetch values for Dashboard 1 parameter 'abc' that start with 'Cam' and are possible when parameter 'def' is set
+    ;; fetch values for Dashboard 1 parameter 'abc' that contain 'Cam' and are possible when parameter 'def' is set
     ;; to 100
      GET /api/dashboard/1/params/abc/search/Cam?def=100
+
+  Currently limited to first 100 results
 
 ##### PARAMS:
 
@@ -699,7 +701,7 @@ Fetch possible values of the parameter whose ID is `:param-key` that start with 
 
 *  **`param-key`** 
 
-*  **`prefix`** 
+*  **`query`** 
 
 *  **`query-params`** 
 
@@ -1006,7 +1008,7 @@ Return a list of autocomplete suggestions for a given `prefix`.
   and `Fields` in this `Database`.
 
   Tables are returned in the format `[table_name "Table"]`;
-  Fields are returned in the format `[field_name "table_name base_type special_type"]`
+  Fields are returned in the format `[field_name "table_name base_type semantic_type"]`
 
 ##### PARAMS:
 
@@ -1615,7 +1617,7 @@ If a Field's value of `has_field_values` is `list`, return a list of all the dis
 *  **`id`** 
 
 
-## `GET /api/field/field-literal%2C:field-name%2Ctype%2F:field-type/values`
+## `GET /api/field/field%2C:field-name%2C:options/values`
 
 Implementation of the field values endpoint for fields in the Saved Questions 'virtual' DB. This endpoint is just a
   convenience to simplify the frontend code. It just returns the standard 'empty' field values response.
@@ -1666,7 +1668,7 @@ You must be a superuser to do this.
 
 ## `POST /api/field/:id/values`
 
-Update the fields values and human-readable values for a `Field` whose special type is
+Update the fields values and human-readable values for a `Field` whose semantic type is
   `category`/`city`/`state`/`country` or whose base type is `type/Boolean`. The human-readable values are optional.
 
 ##### PARAMS:
@@ -1690,7 +1692,9 @@ Update `Field` with ID.
 
 *  **`description`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`special_type`** value may be nil, or if non-nil, value must be a valid field type.
+*  **`semantic_type`** value may be nil, or if non-nil, value must be a valid field type.
+
+*  **`coercion_strategy`** value may be nil, or if non-nil, value must be a valid coercion type.
 
 *  **`has_field_values`** value may be nil, or if non-nil, value must be one of: `auto-list`, `list`, `none`, `search`.
 
@@ -1726,6 +1730,11 @@ You must be a superuser to do this.
 ##### PARAMS:
 
 *  **`settings`** value must be a map.
+
+
+## `GET /api/login-history/current`
+
+Fetch recent logins for the current user.
 
 
 ## `GET /api/metastore/token/status`
@@ -1904,9 +1913,9 @@ Update an existing `NativeQuerySnippet`.
 
 Notification about a potential schema change to one of our `Databases`.
   Caller can optionally specify a `:table_id` or `:table_name` in the body to limit updates to a single
-  `Table`. Optional Parameter `:scan` can be `"full" or "schema" for a full sync or a schema sync, available
+  `Table`. Optional Parameter `:scan` can be `"full"` or `"schema"` for a full sync or a schema sync, available
   regardless if a `:table_id` or `:table_name` is passed.
-  This endpoint is secured by an API key that needs to be passed as a `X-METABASE-APIKEY` header which needs to be defined in 
+  This endpoint is secured by an API key that needs to be passed as a `X-METABASE-APIKEY` header which needs to be defined in
   the `MB_API_KEY` [environment variable](https://www.metabase.com/docs/latest/operations-guide/environment-variables.html#mb_api_key)
 
 ##### PARAMS:
@@ -2258,9 +2267,9 @@ Fetch FieldValues for a Field that is referenced by a Card in a public Dashboard
 *  **`field-id`** 
 
 
-## `GET /api/public/dashboard/:uuid/params/:param-key/search/:prefix`
+## `GET /api/public/dashboard/:uuid/params/:param-key/search/:query`
 
-Fetch filter values for dashboard parameter `param-key`, with specified `prefix`.
+Fetch filter values for dashboard parameter `param-key`, containing specified `query`.
 
 ##### PARAMS:
 
@@ -2268,7 +2277,7 @@ Fetch filter values for dashboard parameter `param-key`, with specified `prefix`
 
 *  **`param-key`** 
 
-*  **`prefix`** 
+*  **`query`** 
 
 *  **`query-params`** 
 
@@ -2417,6 +2426,8 @@ Create a new `Pulse`.
 
 *  **`dashboard_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
+*  **`parameters`** value must be an array. Each value must be a map.
+
 
 ## `POST /api/pulse/test`
 
@@ -2445,19 +2456,21 @@ Update a Pulse with `id`.
 
 ##### PARAMS:
 
-*  **`id`** 
+*  **`skip_if_empty`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`name`** value may be nil, or if non-nil, value must be a non-blank string.
+*  **`parameters`** value must be an array. Each value must be a map.
 
-*  **`cards`** value may be nil, or if non-nil, value must be an array. Each value must satisfy one of the following requirements: 1) value must be a map with the following keys `(collection_id, description, display, id, include_csv, include_xls, name, dashboard_id, parameter_mappings)` 2) value must be a map with the keys `id`, `include_csv`, `include_xls`, and `dashboard_card_id`. The array cannot be empty.
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
 *  **`channels`** value may be nil, or if non-nil, value must be an array. Each value must be a map. The array cannot be empty.
 
-*  **`skip_if_empty`** value may be nil, or if non-nil, value must be a boolean.
-
 *  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
-*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
+*  **`name`** value may be nil, or if non-nil, value must be a non-blank string.
+
+*  **`id`** 
+
+*  **`cards`** value may be nil, or if non-nil, value must be an array. Each value must satisfy one of the following requirements: 1) value must be a map with the following keys `(collection_id, description, display, id, include_csv, include_xls, name, dashboard_id, parameter_mappings)` 2) value must be a map with the keys `id`, `include_csv`, `include_xls`, and `dashboard_card_id`. The array cannot be empty.
 
 *  **`pulse-updates`** 
 

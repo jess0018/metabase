@@ -5,9 +5,9 @@ import {
   popover,
   sidebar,
   visitQuestionAdhoc,
-} from "__support__/cypress";
-import { USER_GROUPS } from "__support__/cypress_data";
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+} from "__support__/e2e/cypress";
+import { USER_GROUPS } from "__support__/e2e/cypress_data";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const {
   ORDERS,
@@ -27,25 +27,17 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
 
   it("should allow brush date filter", () => {
     cy.createQuestion({
-      name: "Orders by Product → Created At (month) and Product → Category",
+      name: "Brush Date Filter",
       query: {
         "source-table": ORDERS_ID,
         aggregation: [["count"]],
         breakout: [
           [
-            "datetime-field",
-            [
-              "fk->",
-              ["field-id", ORDERS.PRODUCT_ID],
-              ["field-id", PRODUCTS.CREATED_AT],
-            ],
-            "month",
+            "field",
+            PRODUCTS.CREATED_AT,
+            { "source-field": ORDERS.PRODUCT_ID, "temporal-unit": "month" },
           ],
-          [
-            "fk->",
-            ["field-id", ORDERS.PRODUCT_ID],
-            ["field-id", PRODUCTS.CATEGORY],
-          ],
+          ["field", PRODUCTS.CATEGORY, { "source-field": ORDERS.PRODUCT_ID }],
         ],
       },
       display: "line",
@@ -59,13 +51,15 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
       cy.wait(100); // wait longer to avoid grabbing the svg before a chart redraw
 
       // drag across to filter
-      cy.get(".dc-chart svg")
+      cy.get(".Visualization")
         .trigger("mousedown", 100, 200)
-        .trigger("mousemove", 200, 200)
-        .trigger("mouseup", 200, 200);
+        .trigger("mousemove", 210, 200)
+        .trigger("mouseup", 210, 200);
 
       // new filter applied
-      cy.contains("Created At between May, 2016 July, 2016");
+      // Note: Test was flaking because apparently mouseup doesn't always happen at the same position.
+      //       It is enough that we assert that the filter exists and that it starts with May, 2016
+      cy.contains(/^Created At between May, 2016/);
       // more granular axis labels
       cy.contains("June, 2016");
       // confirm that product category is still broken out
@@ -82,7 +76,7 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
       query: {
         "source-table": ORDERS_ID,
         aggregation: [["count"]],
-        breakout: [["datetime-field", ["field-id", ORDERS.CREATED_AT], "year"]],
+        breakout: [["field", ORDERS.CREATED_AT, { "temporal-unit": "year" }]],
       },
       display: "line",
     }).then(({ body: { id: Q1_ID } }) => {
@@ -91,12 +85,10 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
         query: {
           "source-table": ORDERS_ID,
           aggregation: [
-            ["avg", ["field-id", ORDERS.DISCOUNT]],
-            ["avg", ["field-id", ORDERS.QUANTITY]],
+            ["avg", ["field", ORDERS.DISCOUNT, null]],
+            ["avg", ["field", ORDERS.QUANTITY, null]],
           ],
-          breakout: [
-            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "year"],
-          ],
+          breakout: [["field", ORDERS.CREATED_AT, { "temporal-unit": "year" }]],
         },
         display: "line",
       }).then(({ body: { id: Q2_ID } }) => {
@@ -204,7 +196,7 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
       query: {
         "source-table": ORDERS_ID,
         aggregation: [["count"]],
-        breakout: [["datetime-field", ORDERS.CREATED_AT, "week"]],
+        breakout: [["field", ORDERS.CREATED_AT, { "temporal-unit": "week" }]],
       },
       display: "line",
     });
@@ -295,6 +287,29 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
     });
   });
 
+  it("should display correct value in a tooltip for unaggregated data with breakouts (metabase#15785)", () => {
+    visitQuestionAdhoc({
+      dataset_query: {
+        type: "native",
+        native: {
+          query:
+            "select 1 as axis, 5 as value, 9 as breakout union all\nselect 2 as axis, 6 as value, 10 as breakout union all\nselect 2 as axis, 6 as value, 10 as breakout",
+        },
+        database: 1,
+      },
+      display: "bar",
+      visualization_settings: {
+        "graph.dimensions": ["AXIS", "BREAKOUT"],
+        "graph.metrics": ["VALUE"],
+      },
+    });
+
+    cy.get(".bar")
+      .last()
+      .trigger("mousemove");
+    popover().findByText("12");
+  });
+
   it.skip("should drill-through a custom question that joins a native SQL question (metabase#14495)", () => {
     // Restrict "normal user" (belongs to the DATA_GROUP) from writing native queries
     cy.log("Fetch permissions graph");
@@ -331,11 +346,11 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
               "source-table": `card__${SQL_ID}`,
               condition: [
                 "=",
-                ["field-id", PEOPLE.ID],
+                ["field", PEOPLE.ID, null],
                 [
-                  "joined-field",
-                  ALIAS,
-                  ["field-literal", "ID", "type/BigInteger"],
+                  "field",
+                  "ID",
+                  { "base-type": "type/BigInteger", "join-alias": ALIAS },
                 ],
               ],
               alias: ALIAS,
@@ -343,7 +358,7 @@ describe("scenarios > visualizations > drillthroughs > chart drill", () => {
           ],
           aggregation: [["count"]],
           breakout: [
-            ["datetime-field", ["field-id", PEOPLE.CREATED_AT], "month"],
+            ["field", PEOPLE.CREATED_AT, { "temporal-unit": "month" }],
           ],
         },
         display: "bar",

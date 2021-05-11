@@ -1,5 +1,5 @@
-import { restore, popover, modal } from "__support__/cypress";
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { restore, popover, modal } from "__support__/e2e/cypress";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATASET;
 
@@ -48,7 +48,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
       cy.request("POST", "/api/metric", {
         definition: {
           aggregation: ["count"],
-          filter: ["<", ["field-id", ORDERS.TOTAL], 100],
+          filter: ["<", ["field", ORDERS.TOTAL, null], 100],
           "source-table": ORDERS_ID,
         },
         name: "orders < 100",
@@ -175,8 +175,8 @@ describe("scenarios > admin > datamodel > metrics", () => {
                 "sum",
                 [
                   "*",
-                  ["field-id", ORDERS.DISCOUNT],
-                  ["field-id", ORDERS.QUANTITY],
+                  ["field", ORDERS.DISCOUNT, null],
+                  ["field", ORDERS.QUANTITY, null],
                 ],
               ],
               { "display-name": "CE" },

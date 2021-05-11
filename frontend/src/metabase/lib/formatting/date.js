@@ -1,5 +1,3 @@
-/* @flow */
-
 import type { DateSeparator } from "metabase/lib/formatting";
 
 import type { DatetimeUnit } from "metabase-types/types/Query";
@@ -17,7 +15,7 @@ export type DateStyle =
 | "DD";
 
 
-export type TimeStyle = "h:mm A" | "k:mm" | "h A";
+export type TimeStyle = "h:mm A" | "HH:mm" | "h A";
 
 export type MomentFormat = string; // moment.js format strings
 export type DateFormat = MomentFormat;

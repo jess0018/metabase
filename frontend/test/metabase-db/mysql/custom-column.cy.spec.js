@@ -1,4 +1,8 @@
-import { restore, addMySQLDatabase, withDatabase } from "__support__/cypress";
+import {
+  restore,
+  addMySQLDatabase,
+  withDatabase,
+} from "__support__/e2e/cypress";
 
 const MYSQL_DB_NAME = "QA MySQL8";
 
@@ -24,7 +28,7 @@ describe.skip("mysql > user > question > custom column", () => {
           expressions: {
             [CC_NAME]: [
               "substring",
-              ["field-id", PEOPLE.SOURCE],
+              ["field", PEOPLE.SOURCE, null],
               0,
               4, // we want 4 letter abbreviation
             ],

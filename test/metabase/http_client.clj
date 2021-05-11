@@ -96,7 +96,7 @@
 (def ^:private Credentials
   {:username su/NonBlankString, :password su/NonBlankString})
 
-(def ^:private UUIDString
+(def UUIDString
   "Schema for a canonical string representation of a UUID."
   (s/constrained
    su/NonBlankString
@@ -228,11 +228,7 @@
      :query-parameters query-parameters
      :request-options  request-options}))
 
-(def ^:private response-timeout-ms
-  ;; CircleCI is crazy slow and likes to randomly pause, so use a much larger timeout when running on CI
-  (u/seconds->ms (if (env/env :ci)
-                   45
-                   15)))
+(def ^:private response-timeout-ms (u/seconds->ms 45))
 
 (defn client-full-response
   "Identical to `client` except returns the full HTTP response map, not just the body of the response"
@@ -250,13 +246,13 @@
 
   Examples:
 
-    (client :get 200 \"card/1\")                ; GET  http://localhost:3000/api/card/1, throw exception is status code != 200
+    (client :get 200 \"card/1\")                ; GET  http://localhost:3000/api/card/1, throw exception if status code != 200
     (client :get \"card\" :org 1)               ; GET  http://localhost:3000/api/card?org=1
     (client :post \"card\" {:name \"My Card\"}) ; POST http://localhost:3000/api/card with JSON-encoded body {:name \"My Card\"}
 
   Args:
 
-   *  `credentials`          Optional map of `:username` and `:password` or `X-METABASE-SESSION` token of a User who we
+   *  `credentials`          Optional map of `:username` and `:password` or Session token of a User who we
                              should perform the request as
    *  `method`               `:get`, `:post`, `:delete`, or `:put`
    *  `expected-status-code` When passed, throw an exception if the response has a different status code.

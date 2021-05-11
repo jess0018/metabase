@@ -1,4 +1,8 @@
-import { restore, popover, selectDashboardFilter } from "__support__/cypress";
+import {
+  restore,
+  popover,
+  selectDashboardFilter,
+} from "__support__/e2e/cypress";
 
 function filterDashboard(suggests = true) {
   cy.visit("/dashboard/1");
@@ -6,15 +10,15 @@ function filterDashboard(suggests = true) {
 
   // We should get a suggested response and be able to click it if we're an admin
   if (suggests) {
-    cy.contains("Category").type("Aero");
+    cy.contains("Text").type("Aero");
     cy.contains("Aerodynamic").click();
   } else {
-    cy.contains("Category").type("Aerodynamic Bronze Hat");
+    cy.contains("Text").type("Aerodynamic Bronze Hat");
     cy.wait("@search").should(xhr => {
       expect(xhr.status).to.equal(403);
     });
   }
-  cy.contains("Add filter").click();
+  cy.contains("Add filter").click({ force: true });
   cy.contains("Aerodynamic Bronze Hat");
   cy.contains(/Rows \d-\d of 96/);
 }
@@ -31,7 +35,11 @@ describe("support > permissions (metabase#8472)", () => {
 
     cy.icon("filter").click();
     popover()
-      .contains("Other Categories")
+      .contains("Text or Category")
+      .click();
+
+    popover()
+      .contains("Dropdown")
       .click();
 
     // Filter the first card by product category

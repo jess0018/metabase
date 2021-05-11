@@ -1,6 +1,6 @@
 import _ from "underscore";
-import { snapshot, restore, withSampleDataset } from "__support__/cypress";
-import { USERS, USER_GROUPS } from "__support__/cypress_data";
+import { snapshot, restore, withSampleDataset } from "__support__/e2e/cypress";
+import { USERS, USER_GROUPS } from "__support__/e2e/cypress_data";
 
 const {
   ALL_USERS_GROUP,
@@ -22,7 +22,7 @@ describe("snapshots", () => {
       withSampleDataset(SAMPLE_DATASET => {
         createQuestionAndDashboard(SAMPLE_DATASET);
         cy.writeFile(
-          "frontend/test/__support__/cypress_sample_dataset.json",
+          "frontend/test/__support__/e2e/cypress_sample_dataset.json",
           SAMPLE_DATASET,
         );
       });
@@ -146,7 +146,7 @@ describe("snapshots", () => {
       query: {
         "source-table": ORDERS_ID,
         aggregation: [["count"]],
-        breakout: [["datetime-field", ["field-id", ORDERS.CREATED_AT], "year"]],
+        breakout: [["field", ORDERS.CREATED_AT, { "temporal-unit": "year" }]],
       },
       display: "line",
     });

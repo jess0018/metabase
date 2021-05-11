@@ -5,9 +5,9 @@ import {
   restore,
   selectDashboardFilter,
   expectedRouteCalls,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const {
   ORDERS,
@@ -52,7 +52,7 @@ describe("scenarios > dashboard", () => {
     // Adding location/state doesn't make much sense for this case,
     // but we're testing just that the filter is added to the dashboard
     cy.findByText("Location").click();
-    cy.findByText("State").click();
+    cy.findByText("Dropdown").click();
     cy.findByText("Select…").click();
 
     popover().within(() => {
@@ -67,7 +67,7 @@ describe("scenarios > dashboard", () => {
 
     cy.log("Assert that the selected filter is present in the dashboard");
     cy.icon("location");
-    cy.findByText("State");
+    cy.findByText("Location");
   });
 
   it("should add a question", () => {
@@ -86,24 +86,16 @@ describe("scenarios > dashboard", () => {
       name: "11007",
       dataset_query: {
         database: 1,
-        filter: [">", ["field-literal", "sum", "type/Float"], 100],
+        filter: [">", ["field", "sum", { "base-type": "type/Float" }], 100],
         query: {
           "source-table": ORDERS_ID,
-          aggregation: [["sum", ["field-id", ORDERS.TOTAL]]],
+          aggregation: [["sum", ["field", ORDERS.TOTAL, null]]],
           breakout: [
-            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "day"],
-            [
-              "fk->",
-              ["field-id", ORDERS.PRODUCT_ID],
-              ["field-id", PRODUCTS.ID],
-            ],
-            [
-              "fk->",
-              ["field-id", ORDERS.PRODUCT_ID],
-              ["field-id", PRODUCTS.CATEGORY],
-            ],
+            ["field", ORDERS.CREATED_AT, { "temporal-unit": "day" }],
+            ["field", PRODUCTS.ID, { "source-field": ORDERS.PRODUCT_ID }],
+            ["field", PRODUCTS.CATEGORY, { "source-field": ORDERS.PRODUCT_ID }],
           ],
-          filter: ["=", ["field-id", ORDERS.USER_ID], 1],
+          filter: ["=", ["field", ORDERS.USER_ID, null], 1],
         },
         type: "query",
       },
@@ -144,7 +136,8 @@ describe("scenarios > dashboard", () => {
     // add third filter
     cy.icon("filter").click();
     popover().within(() => {
-      cy.findByText("Other Categories").click();
+      cy.findByText("Text or Category").click();
+      cy.findByText("Starts with").click();
     });
     // and connect it to the card
     selectDashboardFilter(cy.get(".DashCard"), "Category");
@@ -193,7 +186,7 @@ describe("scenarios > dashboard", () => {
                   {
                     parameter_id: "92eb69ea",
                     card_id: questionId,
-                    target: ["dimension", ["field-id", PEOPLE.ID]],
+                    target: ["dimension", ["field", PEOPLE.ID, null]],
                   },
                 ],
                 visualization_settings: {
@@ -298,7 +291,7 @@ describe("scenarios > dashboard", () => {
             name: "filter",
             "display-name": "Filter",
             type: "dimension",
-            dimension: ["field-id", ORDERS.CREATED_AT],
+            dimension: ["field", ORDERS.CREATED_AT, null],
             "widget-type": "date/month-year",
             default: null,
           },
@@ -327,7 +320,7 @@ describe("scenarios > dashboard", () => {
                 {
                   parameter_id: "d3b78b27",
                   card_id: 1,
-                  target: ["dimension", ["field-id", ORDERS.CREATED_AT]],
+                  target: ["dimension", ["field", ORDERS.CREATED_AT, null]],
                 },
               ],
               visualization_settings: {},
@@ -406,9 +399,9 @@ describe("scenarios > dashboard", () => {
               target: [
                 "dimension",
                 [
-                  "fk->",
-                  ["field-id", ORDERS.PRODUCT_ID],
-                  ["field-id", PRODUCTS.CATEGORY],
+                  "field",
+                  PRODUCTS.CATEGORY,
+                  { "source-field": ORDERS.PRODUCT_ID },
                 ],
               ],
             },
@@ -484,17 +477,17 @@ describe("scenarios > dashboard", () => {
                   {
                     parameter_id: "9f20a0d5",
                     card_id: QUESTION_ID,
-                    target: ["dimension", ["field-id", PRODUCTS.TITLE]],
+                    target: ["dimension", ["field", PRODUCTS.TITLE, null]],
                   },
                   {
                     parameter_id: "719fe1c2",
                     card_id: QUESTION_ID,
-                    target: ["dimension", ["field-id", PRODUCTS.CATEGORY]],
+                    target: ["dimension", ["field", PRODUCTS.CATEGORY, null]],
                   },
                   {
                     parameter_id: "a73b7c9",
                     card_id: QUESTION_ID,
-                    target: ["dimension", ["field-id", PRODUCTS.VENDOR]],
+                    target: ["dimension", ["field", PRODUCTS.VENDOR, null]],
                   },
                 ],
                 visualization_settings: {},
@@ -749,6 +742,157 @@ describe("scenarios > dashboard", () => {
       });
     });
   });
+
+  it("should be possible to scroll vertically after fullscreen layer is closed (metabase#15596)", () => {
+    // Make this dashboard card extremely tall so that it spans outside of visible viewport
+    cy.request("PUT", "/api/dashboard/1/cards", {
+      cards: [
+        {
+          id: 1,
+          card_id: 1,
+          row: 0,
+          col: 0,
+          sizeX: 12,
+          sizeY: 20,
+          series: [],
+          visualization_settings: {},
+          parameter_mappings: [],
+        },
+      ],
+    });
+
+    cy.visit("/dashboard/1");
+    cy.contains("37.65");
+    assertScrollBarExists();
+    cy.icon("share").click();
+    cy.findByText("Sharing and embedding").click();
+    // Fullscreen modal opens - close it now
+    cy.icon("close").click();
+    cy.get(".Modal--full").should("not.exist");
+    assertScrollBarExists();
+  });
+
+  it("dashboard filters should allow multiple selections (metabase#15689)", () => {
+    cy.createQuestion({
+      name: "15689",
+      query: { "source-table": PEOPLE_ID },
+    }).then(({ body: { id: QUESTION_ID } }) => {
+      cy.createDashboard("15689D").then(({ body: { id: DASHBOARD_ID } }) => {
+        // Add filter to the dashboard
+        cy.request("PUT", `/api/dashboard/${DASHBOARD_ID}`, {
+          parameters: [
+            {
+              name: "Location",
+              slug: "location",
+              id: "5aefc725",
+              type: "string/=",
+              sectionId: "location",
+            },
+          ],
+        });
+        // Add card to the dashboard
+        cy.request("POST", `/api/dashboard/${DASHBOARD_ID}/cards`, {
+          cardId: QUESTION_ID,
+        }).then(({ body: { id: DASH_CARD_ID } }) => {
+          // Connect filter to the card
+          cy.request("PUT", `/api/dashboard/${DASHBOARD_ID}/cards`, {
+            cards: [
+              {
+                id: DASH_CARD_ID,
+                card_id: QUESTION_ID,
+                row: 0,
+                col: 0,
+                sizeX: 12,
+                sizeY: 9,
+                visualization_settings: {},
+                parameter_mappings: [
+                  {
+                    parameter_id: "5aefc725",
+                    card_id: QUESTION_ID,
+                    target: ["dimension", ["field", PEOPLE.STATE, null]],
+                  },
+                ],
+              },
+            ],
+          });
+        });
+
+        cy.visit(`/dashboard/${DASHBOARD_ID}`);
+      });
+    });
+
+    cy.get("fieldset").click();
+    cy.findByText("AK").click();
+    cy.findByText("CA").click();
+    cy.icon("close")
+      .as("close")
+      .should("have.length", 2);
+    cy.get("@close")
+      .first()
+      .closest("li")
+      .contains("AK");
+    cy.get("@close")
+      .last()
+      .closest("li")
+      .contains("CA");
+  });
+
+  it.skip("dashboard filters should not limit the number of search results (metabase#15695)", () => {
+    // Change filtering on this field to "a list of all values"
+    cy.request("PUT", `/api/field/${PRODUCTS.TITLE}`, {
+      has_field_values: "list",
+    });
+
+    cy.createQuestion({
+      name: "15695",
+      query: { "source-table": PRODUCTS_ID },
+    }).then(({ body: { id: QUESTION_ID } }) => {
+      cy.createDashboard("15695D").then(({ body: { id: DASHBOARD_ID } }) => {
+        // Add filter to the dashboard
+        cy.request("PUT", `/api/dashboard/${DASHBOARD_ID}`, {
+          parameters: [
+            {
+              name: "Text",
+              slug: "text",
+              id: "de9f36f0",
+              type: "string/=",
+              sectionId: "string",
+            },
+          ],
+        });
+        // Add card to the dashboard
+        cy.request("POST", `/api/dashboard/${DASHBOARD_ID}/cards`, {
+          cardId: QUESTION_ID,
+        }).then(({ body: { id: DASH_CARD_ID } }) => {
+          // Connect filter to the card
+          cy.request("PUT", `/api/dashboard/${DASHBOARD_ID}/cards`, {
+            cards: [
+              {
+                id: DASH_CARD_ID,
+                card_id: QUESTION_ID,
+                row: 0,
+                col: 0,
+                sizeX: 12,
+                sizeY: 9,
+                visualization_settings: {},
+                parameter_mappings: [
+                  {
+                    parameter_id: "de9f36f0",
+                    card_id: QUESTION_ID,
+                    target: ["dimension", ["field", PRODUCTS.TITLE, null]],
+                  },
+                ],
+              },
+            ],
+          });
+        });
+        cy.visit(`/dashboard/${DASHBOARD_ID}`);
+      });
+    });
+    cy.get("fieldset").click();
+    cy.findByPlaceholderText("Search the list").type("Syner");
+    cy.findByText("Synergistic Wool Coat");
+  });
 });
 
 function checkOptionsForFilter(filter) {
@@ -763,4 +907,13 @@ function checkOptionsForFilter(filter) {
 
   // Get rid of the open popover to be able to select another filter
   cy.findByText("Pick one or more filters to update").click();
+}
+
+function assertScrollBarExists() {
+  cy.get("body").then($body => {
+    const bodyWidth = $body[0].getBoundingClientRect().width;
+    cy.window()
+      .its("innerWidth")
+      .should("be.gt", bodyWidth);
+  });
 }

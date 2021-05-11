@@ -20,7 +20,8 @@
             [metabase.util.schema :as su]
             [schema.core :as s]
             [toucan.db :as db]
-            [toucan.hydrate :refer [hydrate]]))
+            [toucan.hydrate :refer [hydrate]])
+  (:import [java.util.concurrent Callable Executors ExecutorService Future ThreadFactory]))
 
 (def ^:private TableVisibilityType
   "Schema for a valid table visibility type."
@@ -43,32 +44,65 @@
   (-> (api/read-check Table id)
       (hydrate :db :pk_field)))
 
-;; TODO: this should changed to `update-tables!` and update multiple tables in one db request
-(defn- update-table!
-  [id {:keys [visibility_type] :as body}]
-  (let [table (Table id)]
-    (api/write-check table)
-    ;; always update visibility type; update display_name, show_in_getting_started, entity_type if non-nil; update
-    ;; description and related fields if passed in
-    (api/check-500
-     (db/update! Table id
-       (assoc (u/select-keys-when body
-                :non-nil [:display_name :show_in_getting_started :entity_type :field_order]
-                :present [:description :caveats :points_of_interest])
-              :visibility_type visibility_type)))
-    (let [updated-table        (Table id)
-          changed-field-order? (not= (:field_order updated-table) (:field_order table))
-          now-visible?         (nil? (:visibility_type updated-table)) ; only Tables with `nil` visibility type are visible
-          was-visible?         (nil? (:visibility_type table))
-          became-visible?      (and now-visible? (not was-visible?))]
-      (when became-visible?
-        (log/info (u/format-color 'green (trs "Table ''{0}'' is now visible. Resyncing." (:name updated-table))))
-        (sync/sync-table! updated-table))
-      (if changed-field-order?
-        (do
-          (table/update-field-positions! updated-table)
-          (hydrate updated-table [:fields [:target :has_field_values] :dimensions :has_field_values]))
-         updated-table))))
+(defn- update-table!*
+  "Takes an existing table and the changes, updates in the database and optionally calls `table/update-field-positions!`
+  if field positions have changed."
+  [{:keys [id] :as existing-table} {:keys [visibility_type] :as body}]
+  (api/check-500
+   (db/update! Table id
+               (assoc (u/select-keys-when body
+                        :non-nil [:display_name :show_in_getting_started :entity_type :field_order]
+                        :present [:description :caveats :points_of_interest])
+                      :visibility_type visibility_type)))
+  (let [updated-table        (Table id)
+        changed-field-order? (not= (:field_order updated-table) (:field_order existing-table))]
+    (if changed-field-order?
+      (do
+        (table/update-field-positions! updated-table)
+        (hydrate updated-table [:fields [:target :has_field_values] :dimensions :has_field_values]))
+      updated-table)))
+
+(defonce ^:private thread-factory
+  (reify ThreadFactory
+    (newThread [_ r]
+      (doto (Thread. r)
+        (.setName "table sync worker")
+        (.setDaemon true)))))
+
+(defonce ^:private executor
+  (delay (Executors/newFixedThreadPool 1 ^ThreadFactory thread-factory)))
+
+(defn- submit-task
+  "Submit a task to the single thread executor. This will attempt to serialize repeated requests to sync tables. It
+  obviously cannot work across multiple instances."
+  ^Future [^Callable f]
+  (let [task (bound-fn [] (f))]
+    (.submit ^ExecutorService @executor ^Callable task)))
+
+(defn- sync-unhidden-tables
+  "Function to call on newly unhidden tables. Starts a thread to sync all tables."
+  [newly-unhidden]
+  (when (seq newly-unhidden)
+    (submit-task
+     (fn []
+       (let [database (table/database (first newly-unhidden))]
+         (if (driver.u/can-connect-with-details? (:engine database) (:details database))
+           (doseq [table newly-unhidden]
+             (log/info (u/format-color 'green (trs "Table ''{0}'' is now visible. Resyncing." (:name table))))
+             (sync/sync-table! table))
+           (log/warn (u/format-color 'red (trs "Cannot connect to database ''{0}'' in order to sync unhidden tables"
+                                               (:name database))))))))))
+
+(defn- update-tables!
+  [ids {:keys [visibility_type] :as body}]
+  (let [existing-tables (db/select Table :id [:in ids])]
+    (api/check-404 (= (count existing-tables) (count ids)))
+    (run! api/write-check existing-tables)
+    (let [updated-tables (db/transaction (mapv #(update-table!* % body) existing-tables))
+          newly-unhidden (when (nil? visibility_type)
+                           (into [] (filter (comp some? :visibility_type)) existing-tables))]
+      (sync-unhidden-tables newly-unhidden)
+      updated-tables)))
 
 (api/defendpoint PUT "/:id"
   "Update `Table` with ID."
@@ -82,7 +116,7 @@
    points_of_interest      (s/maybe su/NonBlankString)
    show_in_getting_started (s/maybe s/Bool)
    field_order             (s/maybe FieldOrder)}
-  (update-table! id body))
+  (first (update-tables! [id] body)))
 
 (api/defendpoint PUT "/"
   "Update all `Table` in `ids`."
@@ -96,8 +130,7 @@
    caveats                 (s/maybe su/NonBlankString)
    points_of_interest      (s/maybe su/NonBlankString)
    show_in_getting_started (s/maybe s/Bool)}
-  (db/transaction
-    (mapv #(update-table! % body) ids)))
+  (update-tables! ids body))
 
 
 (def ^:private auto-bin-str (deferred-tru "Auto bin"))
@@ -110,7 +143,7 @@
             (concat
              (map (fn [[name param]]
                     {:name name
-                     :mbql ["datetime-field" nil param]
+                     :mbql [:field nil {:temporal-unit param}]
                      :type "type/DateTime"})
                   ;; note the order of these options corresponds to the order they will be shown to the user in the UI
                   [[(deferred-tru "Minute") "minute"]
@@ -129,9 +162,11 @@
                    [(deferred-tru "Month of Year") "month-of-year"]
                    [(deferred-tru "Quarter of Year") "quarter-of-year"]])
              (conj
-              (mapv (fn [[name params]]
+              (mapv (fn [[name [strategy param]]]
                       {:name name
-                       :mbql (apply vector "binning-strategy" nil params)
+                       :mbql [:field nil {:binning (merge {:strategy strategy}
+                                                          (when param
+                                                            {strategy param}))}]
                        :type "type/Number"})
                     [default-entry
                      [(deferred-tru "10 bins") ["num-bins" 10]]
@@ -141,9 +176,11 @@
                :mbql nil
                :type "type/Number"})
              (conj
-              (mapv (fn [[name params]]
+              (mapv (fn [[name [strategy param]]]
                       {:name name
-                       :mbql (apply vector "binning-strategy" nil params)
+                       :mbql [:field nil {:binning (merge {:strategy strategy}
+                                                          (when param
+                                                            {strategy param}))}]
                        :type "type/Coordinate"})
                     [default-entry
                      [(deferred-tru "Bin every 0.1 degrees") ["bin-width" 0.1]]
@@ -199,7 +236,6 @@
 (defn- assoc-field-dimension-options [driver {:keys [base_type semantic_type fingerprint] :as field}]
   (let [{min_value :min, max_value :max} (get-in fingerprint [:type :type/Number])
         [default-option all-options] (cond
-
                                        (supports-date-binning? field)
                                        [date-default-index datetime-dimension-indexes]
 
@@ -217,8 +253,8 @@
                                        :else
                                        [nil []])]
     (assoc field
-      :default_dimension_option default-option
-      :dimension_options        all-options)))
+           :default_dimension_option default-option
+           :dimension_options        all-options)))
 
 (defn- assoc-dimension-options [resp driver]
   (-> resp
@@ -277,7 +313,8 @@
           (assoc
            :table_id     (str "card__" card-id)
            :id           (or (:id col)
-                             [:field-literal (:name col) (or (:base_type col) :type/*)])
+                             ;; TODO -- what????
+                             [:field (:name col) {:base-type (or (:base_type col) :type/*)}])
            ;; Assoc semantic_type at least temprorarily. We need the correct semantic type in place to make decisions
            ;; about what kind of dimension options should be added. PK/FK values will be removed after we've added
            ;; the dimension options

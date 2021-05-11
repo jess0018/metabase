@@ -72,7 +72,10 @@
    ;; returned for Card and Dashboard
    :collection_position :integer
    :favorite            :boolean
+   ;; returned for everything except Collection
+   :updated_at          :timestamp
    ;; returned for Card only
+   :dashboardcard_count :integer
    :dataset_query       :text
    ;; returned for Metric and Segment
    :table_id            :integer
@@ -123,8 +126,7 @@
       ;;
       ;; For MySQL, this is not needed.
       :else
-      [(if (= (mdb/db-type) :mysql)
-         nil
+      [(when-not (= (mdb/db-type) :mysql)
          (hx/cast col-type nil))
        search-col])))
 
@@ -158,6 +160,10 @@
     [:= 1 0]  ; No tables should appear in archive searches
     [:= (hsql/qualify (model->alias model) :active) true]))
 
+(defn- wildcard-match
+  [s]
+  (str "%" s "%"))
+
 (defn- search-string-clause
   [query searchable-columns]
   (when query
@@ -166,7 +172,7 @@
                 token (scoring/tokenize (scoring/normalize query))]
             [:like
              (hsql/call :lower column)
-             (str "%" token "%")]))))
+             (wildcard-match token)]))))
 
 (s/defn ^:private base-where-clause-for-model :- [(s/one (s/enum :and :=) "type") s/Any]
   [model :- SearchableModel, {:keys [search-string archived?]} :- SearchContext]
@@ -266,7 +272,7 @@
             {:select (:select base-query)
              :from   [[(merge
                         base-query
-                        {:select [:id :schema :db_id :name :description :display_name
+                        {:select [:id :schema :db_id :name :description :display_name :updated_at
                                   [(hx/concat (hx/literal "/db/") :db_id
                                               (hx/literal "/schema/") (hsql/call :case
                                                                         [:not= :schema nil] :schema
@@ -277,6 +283,19 @@
                        :table]]
              :where  (into [:or] (for [path data-perms]
                                    [:like :path (str path "%")]))}))))))
+
+(defn order-clause
+  "CASE expression that lets the results be ordered by whether they're an exact (non-fuzzy) match or not"
+  [query]
+  (let [match             (wildcard-match (scoring/normalize query))
+        columns-to-search (->> all-search-columns
+                               (filter (fn [[k v]] (= v :text)))
+                               (map first))
+        case-clauses      (as-> columns-to-search <>
+                                (map (fn [col] [:like (hsql/call :lower col) match]) <>)
+                                (interleave <> (repeat 0))
+                                (concat <> [:else 1] ))]
+    (apply hsql/call :case case-clauses)))
 
 (defmulti ^:private check-permissions-for-model
   {:arglists '([search-result])}
@@ -302,23 +321,22 @@
             (if (number? v)
               (not (zero? v))
               v))]
-    (let [search-query {:union-all (for [model search-config/searchable-models
-                                         :let  [query (search-query-for-model model search-ctx)]
-                                         :when (seq query)]
-                                     query)}
-          _            (log/tracef "Searching with query:\n%s" (u/pprint-to-str search-query))
-          results      (db/reducible-query search-query :max-rows search-config/db-max-results)
-          xf           (comp
-                        (filter check-permissions-for-model)
-                        ;; MySQL returns `:favorite` and `:archived` as `1` or `0` so convert those to boolean as needed
-                        (map #(update % :favorite bit->boolean))
-                        (map #(update % :archived bit->boolean))
-                        (map (partial scoring/score-and-result (:search-string search-ctx)))
-                        (filter some?))]
-      (->> results
-           (transduce xf scoring/accumulate-top-results)
-           ;; Pluck out the result; discard the score
-           (map second)))))
+    (let [search-query      {:select [:*]
+                             :from [[{:union-all (for [model search-config/searchable-models
+                                                       :let  [query (search-query-for-model model search-ctx)]
+                                                       :when (seq query)]
+                                                   query)} :alias_is_required_by_sql_but_not_needed_here]]
+                             :order-by [((fnil order-clause "") (:search-string search-ctx))]}
+          _                 (log/tracef "Searching with query:\n%s" (u/pprint-to-str search-query))
+          reducible-results (db/reducible-query search-query :max-rows search-config/db-max-results)
+          xf                (comp
+                             (filter check-permissions-for-model)
+                             ;; MySQL returns `:favorite` and `:archived` as `1` or `0` so convert those to boolean as needed
+                             (map #(update % :favorite bit->boolean))
+                             (map #(update % :archived bit->boolean))
+                             (map (partial scoring/score-and-result (:search-string search-ctx)))
+                             (filter some?))]
+      (scoring/top-results reducible-results xf))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+

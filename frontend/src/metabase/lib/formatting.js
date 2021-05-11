@@ -1,5 +1,4 @@
-/* @flow */
-
+/* eslint-disable react/prop-types */
 import d3 from "d3";
 import inflection from "inflection";
 import moment from "moment-timezone";
@@ -40,6 +39,7 @@ import {
   hasHour,
 } from "metabase/lib/formatting/date";
 import { renderLinkTextForClick } from "metabase/lib/formatting/link";
+import { NULL_NUMERIC_VALUE, NULL_DISPLAY_VALUE } from "metabase/lib/constants";
 
 import type Field from "metabase-lib/lib/metadata/Field";
 import type { Column, Value } from "metabase-types/types/Dataset";
@@ -105,7 +105,7 @@ export type FormattingOptions = {
   markdown_template?: string,
 };
 
-type FormattedString = string | React$Element<any>;
+type FormattedString = string | React.Element;
 
 export const FK_SYMBOL = "→";
 
@@ -738,7 +738,9 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
     return remapped;
   }
 
-  if (value == null) {
+  if (value === NULL_NUMERIC_VALUE) {
+    return NULL_DISPLAY_VALUE;
+  } else if (value == null) {
     return null;
   } else if (
     options.click_behavior &&

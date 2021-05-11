@@ -1,7 +1,5 @@
-/* @flow */
-
 // TODO: merge with metabase/dashboard/containers/Dashboard.jsx
-
+/* eslint-disable react/prop-types */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { Box } from "grid-styled";
@@ -178,7 +176,7 @@ export default class Dashboard extends Component {
     this.loadDashboard(this.props.dashboardId);
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.dashboardId !== nextProps.dashboardId) {
       this.loadDashboard(nextProps.dashboardId);
     } else if (
@@ -406,7 +404,10 @@ function Sidebars(props) {
       <ParameterSidebar
         parameter={parameter}
         otherParameters={otherParameters}
-        remove={() => removeParameter(editingParameterId)}
+        remove={() => {
+          setEditingParameter(null);
+          removeParameter(editingParameterId);
+        }}
         done={() => setEditingParameter(null)}
         showAddParameterPopover={showAddParameterPopover}
         setParameter={setParameter}

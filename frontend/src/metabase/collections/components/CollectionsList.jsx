@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Box, Flex } from "grid-styled";
 
@@ -24,6 +25,9 @@ class CollectionsList extends React.Component {
         {collections.map(c => {
           const isOpen = openCollections.indexOf(c.id) >= 0;
           const action = isOpen ? this.props.onClose : this.props.onOpen;
+          const hasChildren =
+            Array.isArray(c.children) &&
+            c.children.some(child => !child.archived);
           return (
             <Box key={c.id}>
               <CollectionDropTarget collection={c}>
@@ -38,16 +42,18 @@ class CollectionsList extends React.Component {
                       onClick={() => c.children && action(c.id)}
                       hovered={hovered}
                       highlighted={highlighted}
+                      role="treeitem"
+                      aria-expanded={isOpen}
                     >
                       <Flex
                         className="relative"
                         align={
-                          // if a colleciton name is somewhat long, align things at flex-start ("top") for a slightly better
+                          // if a collection name is somewhat long, align things at flex-start ("top") for a slightly better
                           // visual
                           c.name.length > 25 ? "flex-start" : "center"
                         }
                       >
-                        {c.children && (
+                        {hasChildren && (
                           <Flex
                             className="absolute text-brand cursor-pointer"
                             align="center"

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Box } from "grid-styled";
 import _ from "underscore";
@@ -27,27 +28,28 @@ import ItemsDragLayer from "metabase/containers/dnd/ItemsDragLayer";
   reload: true,
 })
 @connect((state, props) => {
-  // split out collections, pinned, and unpinned since bulk actions only apply to unpinned
+  // split out collections, since bulk actions are not applied to them
   const [collections, items] = _.partition(
     props.list,
     item => item.model === "collection",
   );
+  items.sort((a, b) => a.collection_position - b.collection_position);
+
   const [pinned, unpinned] = _.partition(
     items,
     item => item.collection_position != null,
   );
-  // sort the pinned items by collection_position
-  pinned.sort((a, b) => a.collection_position - b.collection_position);
+
   return {
     collections,
+    items,
     pinned,
     unpinned,
     isAdmin: getUserIsAdmin(state),
   };
 })
-// only apply bulk actions to unpinned items
 @listSelect({
-  listProp: "unpinned",
+  listProp: "items",
   keyForItem: item => `${item.model}:${item.id}`,
 })
 @withRouter
@@ -65,6 +67,20 @@ export default class CollectionContent extends React.Component {
     } finally {
       this.handleBulkActionSuccess();
     }
+  };
+
+  handleMove = selectedItems => {
+    this.setState({
+      selectedItems,
+      selectedAction: "move",
+    });
+  };
+
+  handleCopy = selectedItems => {
+    this.setState({
+      selectedItems,
+      selectedAction: "copy",
+    });
   };
 
   handleBulkMoveStart = () => {
@@ -111,6 +127,8 @@ export default class CollectionContent extends React.Component {
       selection,
       onToggleSelected,
       location,
+
+      scrollElement,
     } = this.props;
     const { selectedItems, selectedAction } = this.state;
 
@@ -122,8 +140,8 @@ export default class CollectionContent extends React.Component {
 
     const collectionHasPins = pinned.length > 0;
 
-    const avaliableTypes = _.uniq(unpinned.map(u => u.model));
-    const showFilters = unpinned.length > 5 && avaliableTypes.length > 1;
+    const availableTypes = _.uniq(unpinned.map(u => u.model));
+    const showFilters = unpinned.length > 5 && availableTypes.length > 1;
 
     return (
       <Box pt={2}>
@@ -137,25 +155,16 @@ export default class CollectionContent extends React.Component {
             collection={collection}
             unpinnedItems={unpinnedItems}
           />
-          {collectionHasPins && (
-            <PinnedItems
-              items={pinned}
-              collection={collection}
-              onMove={selectedItems =>
-                this.setState({
-                  selectedItems,
-                  selectedAction: "move",
-                })
-              }
-              onCopy={selectedItems =>
-                this.setState({
-                  selectedItems,
-                  selectedAction: "copy",
-                })
-              }
-            />
-          )}
+          <PinnedItems
+            items={pinned}
+            collection={collection}
+            selection={selection}
+            onToggleSelected={onToggleSelected}
+            onMove={this.handleMove}
+            onCopy={this.handleCopy}
+          />
           <ItemList
+            scrollElement={scrollElement}
             items={unpinnedItems}
             empty={unpinned.length === 0}
             showFilters={showFilters}
@@ -163,22 +172,14 @@ export default class CollectionContent extends React.Component {
             collection={collection}
             onToggleSelected={onToggleSelected}
             collectionHasPins={collectionHasPins}
-            onMove={selectedItems =>
-              this.setState({
-                selectedItems,
-                selectedAction: "move",
-              })
-            }
-            onCopy={selectedItems =>
-              this.setState({
-                selectedItems,
-                selectedAction: "copy",
-              })
-            }
+            onMove={this.handleMove}
+            onCopy={this.handleCopy}
           />
         </Box>
         <BulkActions
           selected={selected}
+          onSelectAll={this.props.onSelectAll}
+          onSelectNone={this.props.onSelectNone}
           handleBulkArchive={this.handleBulkArchive}
           handleBulkMoveStart={this.handleBulkMoveStart}
           handleBulkMove={this.handleBulkMove}

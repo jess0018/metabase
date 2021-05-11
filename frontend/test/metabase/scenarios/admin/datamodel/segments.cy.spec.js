@@ -1,7 +1,7 @@
 // Ported from `segments.e2e.spec.js`
-import { restore, popover, modal, sidebar } from "__support__/cypress";
+import { restore, popover, modal, sidebar } from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATASET;
 
@@ -55,7 +55,7 @@ describe("scenarios > admin > datamodel > segments", () => {
         definition: {
           "source-table": ORDERS_ID,
           aggregation: [["count"]],
-          filter: ["<", ["field-id", ORDERS.TOTAL], 100],
+          filter: ["<", ["field", ORDERS.TOTAL, null], 100],
         },
       });
     });

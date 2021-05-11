@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Box } from "grid-styled";
 import { t } from "ttag";
@@ -15,7 +16,15 @@ import NormalItem from "metabase/collections/components/NormalItem";
 import CollectionSectionHeading from "metabase/collections/components/CollectionSectionHeading";
 import { ANALYTICS_CONTEXT } from "metabase/collections/constants";
 
-const PinnedItem = ({ item, index, collection, onCopy, onMove }) => (
+const PinnedItem = ({
+  item,
+  index,
+  collection,
+  selection,
+  onToggleSelected,
+  onCopy,
+  onMove,
+}) => (
   <Link
     key={index}
     to={item.getUrl()}
@@ -26,7 +35,9 @@ const PinnedItem = ({ item, index, collection, onCopy, onMove }) => (
     <NormalItem
       item={item}
       collection={collection}
+      selection={selection}
       onPin={() => item.setPinned(false)}
+      onToggleSelected={onToggleSelected}
       onMove={onMove}
       onCopy={onCopy}
       pinned
@@ -34,7 +45,14 @@ const PinnedItem = ({ item, index, collection, onCopy, onMove }) => (
   </Link>
 );
 
-export default function PinnedItems({ items, collection, onMove, onCopy }) {
+export default function PinnedItems({
+  items,
+  collection,
+  selection,
+  onToggleSelected,
+  onMove,
+  onCopy,
+}) {
   if (items.length === 0) {
     return (
       <PinDropTarget pinIndex={1} hideUntilDrag>
@@ -63,12 +81,18 @@ export default function PinnedItems({ items, collection, onMove, onCopy }) {
       >
         {items.map((item, index) => (
           <Box w={[1]} className="relative" key={index}>
-            <ItemDragSource item={item} collection={collection}>
+            <ItemDragSource
+              item={item}
+              selection={selection}
+              collection={collection}
+            >
               <PinnedItem
                 key={`${item.model}:${item.id}`}
                 index={index}
                 item={item}
                 collection={collection}
+                selection={selection}
+                onToggleSelected={onToggleSelected}
                 onMove={onMove}
                 onCopy={onCopy}
               />

@@ -1,5 +1,5 @@
-import { restore, visitQuestionAdhoc } from "__support__/cypress";
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { restore, visitQuestionAdhoc } from "__support__/e2e/cypress";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { PRODUCTS, PRODUCTS_ID } = SAMPLE_DATASET;
 
@@ -8,7 +8,7 @@ const testQuery = {
   query: {
     "source-table": PRODUCTS_ID,
     aggregation: [["count"]],
-    breakout: [["field-id", PRODUCTS.CATEGORY]],
+    breakout: [["field", PRODUCTS.CATEGORY, null]],
   },
   database: 1,
 };

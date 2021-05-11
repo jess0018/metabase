@@ -1,4 +1,4 @@
-import { restore, popover } from "__support__/cypress";
+import { restore, popover } from "__support__/e2e/cypress";
 
 function typeField(label, value) {
   cy.findByLabelText(label)
@@ -72,6 +72,8 @@ describe("scenarios > admin > databases > add", () => {
   });
 
   it("should show validation error if you enable scheduling toggle and enter invalid db connection info", () => {
+    cy.route("POST", "/api/database").as("createDatabase");
+
     cy.visit("/admin/databases/create");
 
     typeField("Name", "Test db name");
@@ -81,6 +83,8 @@ describe("scenarios > admin > databases > add", () => {
     cy.findByRole("button", { name: "Save" })
       .should("not.be.disabled")
       .click();
+
+    cy.wait("@createDatabase");
 
     toggleFieldWithDisplayName("let me choose when Metabase syncs and scans");
 
@@ -144,6 +148,20 @@ describe("scenarios > admin > databases > add", () => {
 
     cy.wait("@createDatabase");
     cy.findByText("DATABASE CONNECTION ERROR").should("exist");
+  });
+
+  it("EE should ship with Oracle and Vertica as options", () => {
+    cy.onlyOn(!!Cypress.env("HAS_ENTERPRISE_TOKEN"));
+
+    cy.visit("/admin/databases/create");
+    cy.contains("Database type")
+      .closest(".Form-field")
+      .find(".AdminSelect")
+      .click();
+    popover().within(() => {
+      cy.findByText("Oracle");
+      cy.findByText("Vertica");
+    });
   });
 
   describe("BigQuery", () => {
@@ -221,7 +239,7 @@ describe("scenarios > admin > databases > add", () => {
   });
 
   describe("Google Analytics ", () => {
-    it.only("should generate well-formed external auth URLs", () => {
+    it("should generate well-formed external auth URLs", () => {
       cy.visit("/admin/databases/create");
       cy.contains("Database type")
         .parents(".Form-field")

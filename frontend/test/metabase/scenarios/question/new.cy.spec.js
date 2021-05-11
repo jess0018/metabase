@@ -4,9 +4,9 @@ import {
   popover,
   openOrdersTable,
   openReviewsTable,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATASET;
 
@@ -16,6 +16,63 @@ describe("scenarios > question > new", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
+  });
+
+  it("data selector popover should not be too small (metabase#15591)", () => {
+    // Add 10 more databases
+    for (let i = 0; i < 10; i++) {
+      cy.request("POST", "/api/database", {
+        engine: "h2",
+        name: "Sample" + i,
+        details: {
+          db:
+            "zip:./target/uberjar/metabase.jar!/sample-dataset.db;USER=GUEST;PASSWORD=guest",
+        },
+        auto_run_queries: false,
+        is_full_sync: false,
+        schedules: {},
+      });
+    }
+
+    // First test UI for Simple question
+    cy.visit("/question/new");
+    cy.findByText("Simple question").click();
+    cy.findByText("Pick your data");
+    cy.findByText("Sample3").isVisibleInPopover();
+
+    // Then move to the Custom question UI
+    cy.visit("/question/new");
+    cy.findByText("Custom question").click();
+    cy.findByText("Sample3").isVisibleInPopover();
+  });
+
+  it("binning on values from joined table should work (metabase#15648)", () => {
+    // Simple question
+    openOrdersTable();
+    cy.findByText("Summarize").click();
+    cy.findByText("Group by")
+      .parent()
+      .findByText("Rating")
+      .click();
+    cy.get(".Visualization .bar").should("have.length", 6);
+
+    // Custom question ("Notebook")
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Summarize").click();
+    cy.findByText("Count of rows").click();
+    cy.findByText("Pick a column to group by").click();
+    popover().within(() => {
+      // Close expanded "Orders" section in order to bring everything else into view
+      cy.get(".List-section-title")
+        .contains(/Orders?/)
+        .click();
+      cy.get(".List-section-title")
+        .contains(/Products?/)
+        .click();
+      cy.findByText("Rating").click();
+    });
+    cy.findByText("Visualize").click();
+    cy.get(".Visualization .bar").should("have.length", 6);
   });
 
   describe("browse data", () => {
@@ -45,12 +102,10 @@ describe("scenarios > question > new", () => {
           "source-table": ORDERS_ID,
           aggregation: [
             ["count"],
-            ["sum", ["field-id", ORDERS.SUBTOTAL]],
-            ["sum", ["field-id", ORDERS.TOTAL]],
+            ["sum", ["field", ORDERS.SUBTOTAL, null]],
+            ["sum", ["field", ORDERS.TOTAL, null]],
           ],
-          breakout: [
-            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "year"],
-          ],
+          breakout: [["field", ORDERS.CREATED_AT, { "temporal-unit": "year" }]],
           "order-by": [["desc", ["aggregation", 1]]],
         },
       }).then(({ body: { id: QESTION_ID } }) => {
@@ -162,7 +217,7 @@ describe("scenarios > question > new", () => {
             .click();
         });
       // this step is maybe redundant since it fails to even find "by month"
-      cy.findByText("Hour of day");
+      cy.findByText("Hour of Day");
     });
 
     it.skip("should display timeseries filter and granularity widgets at the bottom of the screen (metabase#11183)", () => {
@@ -170,9 +225,9 @@ describe("scenarios > question > new", () => {
         name: "11183",
         query: {
           "source-table": ORDERS_ID,
-          aggregation: [["sum", ["field-id", ORDERS.SUBTOTAL]]],
+          aggregation: [["sum", ["field", ORDERS.SUBTOTAL, null]]],
           breakout: [
-            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "month"],
+            ["field", ORDERS.CREATED_AT, { "temporal-unit": "month" }],
           ],
         },
         display: "line",
@@ -286,8 +341,8 @@ describe("scenarios > question > new", () => {
         query: {
           "source-table": ORDERS_ID,
           breakout: [
-            ["field-id", ORDERS.QUANTITY],
-            ["datetime-field", ["field-id", ORDERS.CREATED_AT], "month"],
+            ["field", ORDERS.QUANTITY, null],
+            ["field", ORDERS.CREATED_AT, { "temporal-unit": "month" }],
           ],
         },
         display: "smartscalar",
@@ -302,6 +357,31 @@ describe("scenarios > question > new", () => {
         cy.log("Bug: showing blank visualization");
         cy.get(".ScalarValue").contains("33");
       });
+    });
+
+    it("'read-only' user should be able to resize column width (metabase#9772)", () => {
+      cy.signIn("readonly");
+      cy.visit("/question/1");
+      cy.findByText("Tax")
+        .closest(".TableInteractive-headerCellData")
+        .as("headerCell")
+        .then($cell => {
+          const originalWidth = $cell[0].getBoundingClientRect().width;
+
+          cy.wrap($cell)
+            .find(".react-draggable")
+            .trigger("mousedown", 0, 0, { force: true })
+            .trigger("mousemove", 100, 0, { force: true })
+            .trigger("mouseup", 100, 0, { force: true });
+
+          cy.findByText("Started from").click(); // Give DOM some time to update
+
+          cy.get("@headerCell").then($newCell => {
+            const newWidth = $newCell[0].getBoundingClientRect().width;
+
+            expect(newWidth).to.be.gt(originalWidth);
+          });
+        });
     });
   });
 });

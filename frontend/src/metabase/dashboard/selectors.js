@@ -1,5 +1,3 @@
-/* @flow weak */
-
 import _ from "underscore";
 import { setIn } from "icepick";
 
@@ -254,10 +252,19 @@ export const makeGetParameterMappingOptions = () => {
   return getParameterMappingOptions;
 };
 
+export const getDefaultParametersById = createSelector(
+  [getDashboard],
+  dashboard =>
+    ((dashboard && dashboard.parameters) || []).reduce((map, parameter) => {
+      if (parameter.default) {
+        map[parameter.id] = parameter.default;
+      }
+
+      return map;
+    }, {}),
+);
+
 export const getCards = state => state.dashboard.cards;
 export const getCardIdList = state => state.dashboard.cardList;
 export const getRevisions = state => state.dashboard.revisions;
-export const getCardList = createSelector(
-  [getCardIdList, getCards],
-  (cardIdList, cards) => cardIdList && cardIdList.map(id => cards[id]),
-);
+export const getCardList = createSelector([getCardIdList, getCards], (cardIdList, cards) => cardIdList && cardIdList.map(id => cards[id]),);

@@ -4,10 +4,11 @@ import {
   _typeUsingGet,
   _typeUsingPlaceholder,
   openOrdersTable,
+  openPeopleTable,
   visitQuestionAdhoc,
-} from "__support__/cypress";
+} from "__support__/e2e/cypress";
 
-import { SAMPLE_DATASET } from "__support__/cypress_sample_dataset";
+import { SAMPLE_DATASET } from "__support__/e2e/cypress_sample_dataset";
 
 const { ORDERS, ORDERS_ID, PRODUCTS, PRODUCTS_ID } = SAMPLE_DATASET;
 
@@ -31,7 +32,7 @@ describe("scenarios > question > custom columns", () => {
     cy.icon("add_data").click();
 
     popover().within(() => {
-      _typeUsingGet("[contenteditable='true']", "1 + 1");
+      _typeUsingGet("[contenteditable='true']", "1 + 1", 400);
       _typeUsingPlaceholder("Something nice and descriptive", columnName);
 
       cy.findByText("Done").click();
@@ -52,7 +53,7 @@ describe("scenarios > question > custom columns", () => {
       cy.icon("add_data").click();
 
       popover().within(() => {
-        _typeUsingGet("[contenteditable='true']", customFormula);
+        _typeUsingGet("[contenteditable='true']", customFormula, 400);
         _typeUsingPlaceholder("Something nice and descriptive", columnName);
 
         cy.findByText("Done").click();
@@ -122,7 +123,7 @@ describe("scenarios > question > custom columns", () => {
     // Add custom column that will be used later in summarize (group by)
     cy.findByText("Custom column").click();
     popover().within(() => {
-      _typeUsingGet("[contenteditable='true']", "1 + 1");
+      _typeUsingGet("[contenteditable='true']", "1 + 1", 400);
       _typeUsingPlaceholder("Something nice and descriptive", columnName);
 
       cy.findByText("Done").click();
@@ -175,9 +176,17 @@ describe("scenarios > question > custom columns", () => {
 
     // add custom column
     cy.findByText("Custom column").click();
-    _typeUsingGet("[contenteditable='true']", "1 + 1");
-    _typeUsingPlaceholder("Something nice and descriptive", "X");
-    cy.findByText("Done").click();
+    popover().within(() => {
+      // Double click at the end of this command is just an ugly hack that seems to reduce the flakiness of this test a lot!
+      // TODO: investigate contenteditable element - it is losing input value and I could reproduce it even locally (outside of Cypress)
+      cy.get("[contenteditable='true']")
+        .type("1+1")
+        .click()
+        .click();
+      cy.findByPlaceholderText("Something nice and descriptive").type("X");
+
+      cy.findByText("Done").click();
+    });
 
     cy.findByText("Visualize").click();
 
@@ -422,15 +431,15 @@ describe("scenarios > question > custom columns", () => {
               "case",
               [
                 [
-                  [">", ["field-id", ORDERS.DISCOUNT], 0],
-                  ["field-id", ORDERS.CREATED_AT],
+                  [">", ["field", ORDERS.DISCOUNT, null], 0],
+                  ["field", ORDERS.CREATED_AT, null],
                 ],
               ],
               {
                 default: [
-                  "fk->",
-                  ["field-id", ORDERS.PRODUCT_ID],
-                  ["field-id", PRODUCTS.CREATED_AT],
+                  "field",
+                  PRODUCTS.CREATED_AT,
+                  { "source-field": ORDERS.PRODUCT_ID },
                 ],
               },
             ],
@@ -472,5 +481,133 @@ describe("scenarios > question > custom columns", () => {
       cy.findByText("Custom Expression").click();
     });
     cy.get("[contenteditable='true']").contains("Sum([MyCC [2021]])");
+  });
+
+  it.skip("should handle floating point numbers with '0' omitted (metabase#15741)", () => {
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    cy.get("[contenteditable='true']").type(".5 * [Discount]");
+    cy.findByPlaceholderText("Something nice and descriptive").type("Foo");
+    cy.findByText("Unknown Field: .5").should("not.exist");
+    cy.findByRole("button", { name: "Done" }).should("not.be.disabled");
+  });
+
+  describe.skip("contentedtable field (metabase#15734)", () => {
+    beforeEach(() => {
+      // This is the default screen size but we need it explicitly set for this test because of the resize later on
+      cy.viewport(1280, 800);
+
+      openOrdersTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        cy.get("[contenteditable='true']")
+          .as("formula")
+          .type("1+1")
+          .blur();
+      });
+      cy.findByPlaceholderText("Something nice and descriptive").type("Math");
+      cy.findByRole("button", { name: "Done" }).should("not.be.disabled");
+    });
+
+    it("should not accidentally delete CC formula value and/or CC name (metabase#15734-1)", () => {
+      cy.get("@formula")
+        .click()
+        .type("{movetoend}{leftarrow}{movetostart}{rightarrow}{rightarrow}")
+        .blur();
+      cy.findByDisplayValue("Math");
+      cy.findByRole("button", { name: "Done" }).should("not.be.disabled");
+    });
+
+    /**
+     * 1. Explanation for `cy.get("@formula").click();`
+     *  - Without it, test runner is too fast and the test resutls in false positive.
+     *  - This gives it enough time to update the DOM. The same result can be achieved with `cy.wait(1)`
+     */
+    it("should not erase CC formula and CC name when expression is incomplete (metabase#15734-2)", () => {
+      cy.get("@formula")
+        .click()
+        .type("{movetoend}{backspace}")
+        .blur();
+      cy.findByText("Expected expression");
+      cy.findByRole("button", { name: "Done" }).should("be.disabled");
+      cy.get("@formula").click(); /* [1] */
+      cy.findByDisplayValue("Math");
+    });
+
+    it("should not erase CC formula and CC name on window resize (metabase#15734-3)", () => {
+      cy.viewport(1260, 800);
+      cy.get("@formula").click(); /* [1] */
+      cy.findByDisplayValue("Math");
+      cy.findByRole("button", { name: "Done" }).should("not.be.disabled");
+    });
+  });
+
+  it.skip("should maintain data type (metabase#13122)", () => {
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']")
+        .type("case([Discount] > 0, [Created At], [Product → Created At])")
+        .blur();
+      cy.findByPlaceholderText("Something nice and descriptive").type("13112");
+      cy.findByRole("button", { name: "Done" }).click();
+    });
+    cy.findByText("Filter").click();
+    popover()
+      .findByText("13112")
+      .click();
+    cy.findByPlaceholderText("Enter a number").should("not.exist");
+  });
+
+  it.skip("filter based on `concat` function should not offer numeric options (metabase#13217)", () => {
+    openPeopleTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']")
+        .type(`concat("State: ", [State])`)
+        .blur();
+      cy.findByPlaceholderText("Something nice and descriptive").type("13217");
+      cy.findByRole("button", { name: "Done" }).click();
+    });
+    cy.findByText("Filter").click();
+    popover()
+      .findByText("13217")
+      .click();
+    cy.findByPlaceholderText("Enter a number").should("not.exist");
+  });
+
+  it.skip("custom expression helper shouldn't be visible when formula field is not in focus (metabase#15891)", () => {
+    openPeopleTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']").type(`rou{enter}1.5`, {
+        delay: 100,
+      });
+    });
+    cy.findByText("round([Temperature])");
+    cy.findByText(/Field formula/i).click(); // Click outside of formula field instead of blur
+    cy.findByText("round([Temperature])").should("not.exist");
+  });
+
+  it.skip("should work with `isNull` function (metabase#15922)", () => {
+    cy.intercept("POST", "/api/dataset").as("dataset");
+
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']").type(`isnull([Discount])`, {
+        delay: 100,
+      });
+      cy.findByPlaceholderText("Something nice and descriptive").type(
+        "No discount",
+      );
+      cy.findByRole("button", { name: "Done" }).click();
+    });
+    cy.findByRole("button", { name: "Visualize" }).click();
+    cy.wait("@dataset").then(xhr => {
+      expect(xhr.response.body.error).to.not.exist;
+    });
+    cy.contains("37.65");
+    cy.findByText("No discount");
   });
 });

@@ -11,6 +11,7 @@
             [metabase.models.table :as table :refer [Table]]
             [metabase.query-processor :as qp]
             [metabase.related :as related]
+            [metabase.types :as types]
             [metabase.util :as u]
             [metabase.util.i18n :refer [trs]]
             [metabase.util.schema :as su]
@@ -25,6 +26,11 @@
   "Schema for a valid `Field` type."
   (su/with-api-error-message (s/constrained s/Str #(isa? (keyword %) :type/*))
     "value must be a valid field type."))
+
+(def ^:private CoercionType
+  "Schema for a valid `Coercion` type."
+  (su/with-api-error-message (s/constrained s/Str #(isa? (keyword %) :Coercion/*))
+    "value must be a valid coercion type."))
 
 (def ^:private FieldVisibilityType
   "Schema for a valid `Field` visibility type."
@@ -92,7 +98,7 @@
 (api/defendpoint PUT "/:id"
   "Update `Field` with ID."
   [id :as {{:keys [caveats description display_name fk_target_field_id points_of_interest semantic_type
-                   visibility_type has_field_values settings]
+                   coercion_strategy visibility_type has_field_values settings]
             :as   body} :body}]
   {caveats            (s/maybe su/NonBlankString)
    description        (s/maybe su/NonBlankString)
@@ -100,11 +106,14 @@
    fk_target_field_id (s/maybe su/IntGreaterThanZero)
    points_of_interest (s/maybe su/NonBlankString)
    semantic_type      (s/maybe FieldType)
+   coercion_strategy  (s/maybe CoercionType)
    visibility_type    (s/maybe FieldVisibilityType)
    has_field_values   (s/maybe (apply s/enum (map name field/has-field-values-options)))
    settings           (s/maybe su/Map)}
   (let [field              (hydrate (api/write-check Field id) :dimensions)
         new-semantic-type  (keyword (get body :semantic_type (:semantic_type field)))
+        effective-type     (or (types/effective_type_for_coercion coercion_strategy)
+                               (:base_type field))
         removed-fk?        (removed-fk-semantic-type? (:semantic_type field) new-semantic-type)
         fk-target-field-id (get body :fk_target_field_id (:fk_target_field_id field))]
 
@@ -122,8 +131,11 @@
           true)
         (clear-dimension-on-type-change! field (:base_type field) new-semantic-type)
         (db/update! Field id
-          (u/select-keys-when (assoc body :fk_target_field_id (when-not removed-fk? fk-target-field-id))
-            :present #{:caveats :description :fk_target_field_id :points_of_interest :semantic_type :visibility_type
+          (u/select-keys-when (assoc body
+                                     :fk_target_field_id (when-not removed-fk? fk-target-field-id)
+                                     :effective_type effective-type
+                                     :coercion_strategy coercion_strategy)
+            :present #{:caveats :description :fk_target_field_id :points_of_interest :semantic_type :visibility_type :coercion_strategy :effective_type
                        :has_field_values}
             :non-nil #{:display_name :settings})))))
     ;; return updated field
@@ -154,7 +166,7 @@
                         human_readable_field_id))
       [400 "Foreign key based remappings require a human readable field id"])
     (if-let [dimension (Dimension :field_id id)]
-      (db/update! Dimension (u/get-id dimension)
+      (db/update! Dimension (u/the-id dimension)
         {:type dimension-type
          :name dimension-name
          :human_readable_field_id human_readable_field_id})
@@ -202,9 +214,9 @@
   [id]
   (check-perms-and-return-field-values id))
 
-;; match things like GET /field-literal%2Ccreated_at%2Ctype%2FDatetime/values
-;; (this is how things like [field-literal,created_at,type/Datetime] look when URL-encoded)
-(api/defendpoint GET "/field-literal%2C:field-name%2Ctype%2F:field-type/values"
+;; match things like GET /field%2Ccreated_at%2options
+;; (this is how things like [field,created_at,{:base-type,:type/Datetime}] look when URL-encoded)
+(api/defendpoint GET "/field%2C:field-name%2C:options/values"
   "Implementation of the field values endpoint for fields in the Saved Questions 'virtual' DB. This endpoint is just a
   convenience to simplify the frontend code. It just returns the standard 'empty' field values response."
   ;; we don't actually care what field-name or field-type are, so they're ignored
@@ -233,7 +245,7 @@
   [field-or-id value-pairs]
   (let [human-readable-values? (validate-human-readable-pairs value-pairs)]
     (db/insert! FieldValues
-      :field_id (u/get-id field-or-id)
+      :field_id (u/the-id field-or-id)
       :values (map first value-pairs)
       :human_readable_values (when human-readable-values?
                                (map second value-pairs)))))
@@ -273,10 +285,10 @@
 ;;; --------------------------------------------------- Searching ----------------------------------------------------
 
 (defn- table-id [field]
-  (u/get-id (:table_id field)))
+  (u/the-id (:table_id field)))
 
 (defn- db-id [field]
-  (u/get-id (db/select-one-field :db_id Table :id (table-id field))))
+  (u/the-id (db/select-one-field :db_id Table :id (table-id field))))
 
 (defn- follow-fks
   "Automatically follow the target IDs in an FK `field` until we reach the PK it points to, and return that. For
@@ -300,23 +312,23 @@
   {:database (db-id field)
    :type     :query
    :query    {:source-table (table-id field)
-              :filter       [:starts-with [:field-id (u/get-id search-field)] value {:case-sensitive false}]
+              :filter       [:contains [:field (u/the-id search-field) nil] value {:case-sensitive false}]
               ;; if both fields are the same then make sure not to refer to it twice in the `:breakout` clause.
               ;; Otherwise this will break certain drivers like BigQuery that don't support duplicate
               ;; identifiers/aliases
-              :breakout     (if (= (u/get-id field) (u/get-id search-field))
-                              [[:field-id (u/get-id field)]]
-                              [[:field-id (u/get-id field)]
-                               [:field-id (u/get-id search-field)]])
+              :breakout     (if (= (u/the-id field) (u/the-id search-field))
+                              [[:field (u/the-id field) nil]]
+                              [[:field (u/the-id field) nil]
+                               [:field (u/the-id search-field) nil]])
               :limit        limit}})
 
 (s/defn search-values
-  "Search for values of `search-field` that start with `value` (up to `limit`, if specified), and return like
+  "Search for values of `search-field` that contain `value` (up to `limit`, if specified), and return like
 
       [<value-of-field> <matching-value-of-search-field>].
 
-   For example, with the Sample Dataset, you could search for the first three IDs & names of People whose name starts
-   with `Ma` as follows:
+   For example, with the Sample Dataset, you could search for the first three IDs & names of People whose name
+  contains `Ma` as follows:
 
       (search-values <PEOPLE.ID Field> <PEOPLE.NAME Field> \"Ma\" 3)
       ;; -> ((14 \"Marilyne Mohr\")
@@ -329,7 +341,7 @@
           rows    (get-in results [:data :rows])]
       ;; if the two Fields are different, we'll get results like [[v1 v2] [v1 v2]]. That is the expected format and we can
       ;; return them as-is
-      (if-not (= (u/get-id field) (u/get-id search-field))
+      (if-not (= (u/the-id field) (u/the-id search-field))
         rows
         ;; However if the Fields are both the same results will be in the format [[v1] [v1]] so we need to double the
         ;; value to get the format the frontend expects
@@ -352,7 +364,6 @@
     (throw-if-no-read-or-segmented-perms search-field)
     (search-values field search-field value (when limit (Integer/parseInt limit)))))
 
-
 (defn remapped-value
   "Search for one specific remapping where the value of `field` exactly matches `value`. Returns a pair like
 
@@ -371,9 +382,9 @@
                    {:database (db-id field)
                     :type     :query
                     :query    {:source-table (table-id field)
-                               :filter       [:= [:field-id (u/get-id field)] value]
-                               :fields       [[:field-id (u/get-id field)]
-                                              [:field-id (u/get-id remapped-field)]]
+                               :filter       [:= [:field (u/the-id field) nil] value]
+                               :fields       [[:field (u/the-id field) nil]
+                                              [:field (u/the-id remapped-field) nil]]
                                :limit        1}})]
       ;; return first row if it exists
       (first (get-in results [:data :rows])))
@@ -385,7 +396,7 @@
 (defn parse-query-param-value-for-field
   "Parse a `value` passed as a URL query param in a way appropriate for the `field` it belongs to. E.g. for text Fields
   the value doesn't need to be parsed; for numeric Fields we should parse it as a number."
-  [field, ^String value]
+  [field ^String value]
   (if (isa? (:base_type field) :type/Number)
     (.parse (NumberFormat/getInstance) value)
     value))

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Box } from "grid-styled";
 
@@ -8,6 +9,11 @@ import { PageWrapper } from "metabase/collections/components/Layout";
 
 const CollectionLanding = ({ params: { collectionId }, children }) => {
   const isRoot = collectionId === "root";
+
+  // This ref is passed to VirtualizedList inside CollectionContent
+  // List's scroll should not be attached to window (as by default)
+  // as it would break NavBar's and Sidebar's layout
+  const collectionContentContainerRef = React.useRef();
 
   return (
     <PageWrapper>
@@ -21,8 +27,13 @@ const CollectionLanding = ({ params: { collectionId }, children }) => {
         style={{ overflowY: "auto" }}
         ml={340}
         pb={4}
+        innerRef={collectionContentContainerRef}
       >
-        <CollectionContent isRoot={isRoot} collectionId={collectionId} />
+        <CollectionContent
+          isRoot={isRoot}
+          collectionId={collectionId}
+          scrollElement={collectionContentContainerRef.current}
+        />
       </Box>
       {
         // Need to have this here so the child modals will show up

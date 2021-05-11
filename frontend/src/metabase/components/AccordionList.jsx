@@ -392,6 +392,7 @@ export default class AccordionList extends Component {
         ref={list => (this._list = list)}
         className={className}
         style={{ ...defaultListStyle, ...style }}
+        containerStyle={{ pointerEvents: "auto" }}
         width={width}
         height={height}
         rowCount={rows.length}

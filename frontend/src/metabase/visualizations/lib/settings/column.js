@@ -1,5 +1,3 @@
-/* @flow */
-
 import { t } from "ttag";
 import moment from "moment";
 import _ from "underscore";
@@ -260,7 +258,7 @@ export const DATE_COLUMN_SETTINGS = {
         ...(column.unit === "hour-of-day"
           ? [timeStyleOption("h A", "12-hour clock without minutes")]
           : []),
-        timeStyleOption("k:mm", t`24-hour clock`),
+        timeStyleOption("HH:mm", t`24-hour clock`),
       ],
     }),
     getHidden: (column: Column, settings: ColumnSettings) =>
