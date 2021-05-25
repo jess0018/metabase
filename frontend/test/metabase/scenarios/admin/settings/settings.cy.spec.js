@@ -344,10 +344,16 @@ describe("scenarios > admin > settings", () => {
         .type("localhost")
         .blur();
       cy.findByPlaceholderText("587")
-        .type("1234")
+        .type("25")
+        .blur();
+      cy.findByPlaceholderText("youlooknicetoday")
+        .type("admin")
+        .blur();
+      cy.findByPlaceholderText("Shhh...")
+        .type("admin")
         .blur();
       cy.findByPlaceholderText("metabase@yourcompany.com")
-        .type("admin@metabase.com")
+        .type("mailer@metabase.test")
         .blur();
       cy.findByText("Save changes").click();
 
@@ -406,7 +412,7 @@ describe("scenarios > admin > settings", () => {
       cy.visit("/admin/settings/email");
       cy.findByText("Send test email").scrollIntoView();
       // Needed to scroll the page down first to be able to use findByRole() - it fails otherwise
-      cy.findByRole("button", { name: "Save changes" }).should("be.disabled");
+      cy.button("Save changes").should("be.disabled");
     });
   });
 

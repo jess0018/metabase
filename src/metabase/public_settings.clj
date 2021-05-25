@@ -242,7 +242,7 @@
   (deferred-tru "The url or image that you want to use as the favicon.")
   :visibility :public
   :type       :string
-  :default    "frontend_client/favicon.ico")
+  :default    "/app/assets/img/favicon.ico")
 
 (defsetting enable-password-login
   (deferred-tru "Allow logging in by email and password.")
@@ -340,6 +340,12 @@
   :visibility :public
   :setter     :none
   :getter     (constantly password/active-password-complexity))
+
+(defsetting session-cookies
+  (deferred-tru "When set, enforces the use of session cookies for all users which expire when the browser is closed.")
+  :type       :boolean
+  :visibility :public
+  :default    nil)
 
 (defsetting report-timezone-short
   "Current report timezone abbreviation"

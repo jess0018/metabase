@@ -528,7 +528,7 @@ describe("scenarios > question > nested", () => {
     }
   });
 
-  describe.skip("should not remove user defined metric when summarizing based on saved question (metabase#15725)", () => {
+  describe("should not remove user defined metric when summarizing based on saved question (metabase#15725)", () => {
     beforeEach(() => {
       cy.intercept("POST", "/api/dataset").as("dataset");
       cy.createNativeQuestion({
@@ -559,7 +559,7 @@ describe("scenarios > question > nested", () => {
       cy.findByText("Pick a column to group by").click();
       cy.findByText("CAT").click();
 
-      cy.findByText("Visualize").click();
+      cy.button("Visualize").click();
       cy.get("@consoleWarn").should(
         "not.be.calledWith",
         "Removing invalid MBQL clause",
@@ -571,7 +571,7 @@ describe("scenarios > question > nested", () => {
       cy.findByText("Pick a column to group by").click();
       cy.findByText("CAT").click();
 
-      cy.findByText("Visualize").click();
+      cy.button("Visualize").click();
       cy.wait("@dataset");
       cy.findAllByRole("button")
         .contains("Summarize")

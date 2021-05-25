@@ -71,8 +71,18 @@ describe("scenarios > question > new", () => {
         .click();
       cy.findByText("Rating").click();
     });
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
     cy.get(".Visualization .bar").should("have.length", 6);
+  });
+
+  it.skip("should display a tooltip for CTA icons on an individual question (metabase#16108)", () => {
+    openOrdersTable();
+    cy.icon("download").realHover();
+    cy.findByText("Download full results");
+    cy.icon("bell").realHover();
+    cy.findByText("Get alerts");
+    cy.icon("share").realHover();
+    cy.findByText("Sharing");
   });
 
   describe("browse data", () => {
@@ -269,7 +279,7 @@ describe("scenarios > question > new", () => {
         cy.findByPlaceholderText("Name (required)").type("twice max total");
         cy.findByText("Done").click();
       });
-      cy.findByText("Visualize").click();
+      cy.button("Visualize").click();
       cy.findByText("318.7");
     });
 

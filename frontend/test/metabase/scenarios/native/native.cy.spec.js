@@ -560,7 +560,7 @@ describe("scenarios > question > native", () => {
     popover()
       .findByText("Doohickey")
       .click();
-    cy.findByRole("button", { name: "Add filter" }).click();
+    cy.button("Add filter").click();
     // Rerun the query
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.wait("@dataset").wait("@dataset");
@@ -597,7 +597,7 @@ describe("scenarios > question > native", () => {
     popover()
       .findByText("Doohickey")
       .click();
-    cy.findByRole("button", { name: "Add filter" }).click();
+    cy.button("Add filter").click();
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.wait("@dataset").then(xhr => {
       expect(xhr.response.body.error).not.to.exist;
@@ -668,7 +668,7 @@ describe("scenarios > question > native", () => {
   ["off", "on"].forEach(testCase => {
     const isFeatureFlagTurnedOn = testCase === "off" ? false : true;
 
-    describe.skip("Feature flag causes problems with Text and Number filters in Native query (metabase#15981)", () => {
+    describe("Feature flag causes problems with Text and Number filters in Native query (metabase#15981)", () => {
       beforeEach(() => {
         mockSessionProperty(
           "field-filter-operators-enabled?",
@@ -695,7 +695,7 @@ describe("scenarios > question > native", () => {
         cy.findByText("Rustic Paper Wallet");
         cy.icon("contract").click();
         cy.findByText("Showing 51 rows");
-        cy.get(".RunButton").should("not.exist");
+        cy.icon("play").should("not.exist");
       });
 
       it(`number filter should work with the feature flag turned ${testCase}`, () => {
