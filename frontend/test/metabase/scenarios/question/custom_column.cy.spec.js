@@ -4,6 +4,8 @@ import {
   _typeUsingGet,
   _typeUsingPlaceholder,
   openOrdersTable,
+  openProductsTable,
+  openPeopleTable,
   visitQuestionAdhoc,
 } from "__support__/e2e/cypress";
 
@@ -40,7 +42,7 @@ describe("scenarios > question > custom columns", () => {
     cy.server();
     cy.route("POST", "/api/dataset").as("dataset");
 
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
     cy.wait("@dataset");
     cy.findByText("There was a problem with your question").should("not.exist");
     cy.get(".Visualization").contains(columnName);
@@ -61,7 +63,7 @@ describe("scenarios > question > custom columns", () => {
       cy.server();
       cy.route("POST", "/api/dataset").as("dataset");
 
-      cy.findByText("Visualize").click();
+      cy.button("Visualize").click();
       cy.wait("@dataset");
       cy.get(".Visualization").contains(columnName);
     });
@@ -107,7 +109,7 @@ describe("scenarios > question > custom columns", () => {
     cy.server();
     cy.route("POST", "/api/dataset").as("dataset");
 
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
     cy.wait("@dataset");
     cy.findByText("There was a problem with your question").should("not.exist");
     // This is a pre-save state of the question but the column name should appear
@@ -149,7 +151,7 @@ describe("scenarios > question > custom columns", () => {
     cy.server();
     cy.route("POST", "/api/dataset").as("dataset");
 
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
     cy.wait("@dataset");
 
     cy.get(".Visualization").within(() => {
@@ -187,11 +189,11 @@ describe("scenarios > question > custom columns", () => {
       cy.findByText("Done").click();
     });
 
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
 
     // wait for results to load
     cy.get(".LoadingSpinner").should("not.exist");
-    cy.findByText("Visualize").should("not.exist");
+    cy.button("Visualize").should("not.exist");
 
     cy.log(
       "**Fails in 0.35.0, 0.35.1, 0.35.2, 0.35.4 and the latest master (2020-10-21)**",
@@ -406,12 +408,93 @@ describe("scenarios > question > custom columns", () => {
     cy.get("[class*=NotebookCellItem]")
       .contains(CE_NAME)
       .should("not.exist");
-    cy.findByText("Visualize").click();
+    cy.button("Visualize").click();
 
     cy.wait("@dataset").then(xhr => {
       expect(xhr.response.body.error).to.not.exist;
     });
     cy.contains("37.65");
+  });
+
+  describe("data type", () => {
+    it("should understand string functions", () => {
+      openProductsTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        cy.get("[contenteditable='true']")
+          .type("concat([Category], [Title])")
+          .blur();
+        cy.findByPlaceholderText("Something nice and descriptive").type(
+          "CategoryTitle",
+        );
+        cy.button("Done").click();
+      });
+      cy.findByText("Filter").click();
+      popover()
+        .findByText("CategoryTitle")
+        .click();
+      cy.findByPlaceholderText("Enter a number").should("not.exist");
+      cy.findByPlaceholderText("Enter some text");
+    });
+
+    it("should relay the type of a date field", () => {
+      openPeopleTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        _typeUsingGet("[contenteditable='true']", "[Birth Date]", 400);
+        _typeUsingPlaceholder("Something nice and descriptive", "DoB");
+        cy.findByText("Done").click();
+      });
+      cy.findByText("Filter").click();
+      popover()
+        .findByText("DoB")
+        .click();
+      cy.findByPlaceholderText("Enter a number").should("not.exist");
+      cy.findByText("Previous");
+      cy.findByText("Days");
+    });
+
+    it("should handle CASE", () => {
+      openOrdersTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        cy.get("[contenteditable='true']")
+          .type("case([Discount] > 0, [Created At], [Product → Created At])")
+          .blur();
+        cy.findByPlaceholderText("Something nice and descriptive").type(
+          "MiscDate",
+        );
+        cy.button("Done").click();
+      });
+      cy.findByText("Filter").click();
+      popover()
+        .findByText("MiscDate")
+        .click();
+      cy.findByPlaceholderText("Enter a number").should("not.exist");
+      cy.findByText("Previous");
+      cy.findByText("Days");
+    });
+
+    it("should handle COALESCE", () => {
+      openOrdersTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        cy.get("[contenteditable='true']")
+          .type("COALESCE([Product → Created At], [Created At])")
+          .blur();
+        cy.findByPlaceholderText("Something nice and descriptive").type(
+          "MiscDate",
+        );
+        cy.button("Done").click();
+      });
+      cy.findByText("Filter").click();
+      popover()
+        .findByText("MiscDate")
+        .click();
+      cy.findByPlaceholderText("Enter a number").should("not.exist");
+      cy.findByText("Previous");
+      cy.findByText("Days");
+    });
   });
 
   it("should handle using `case()` when referencing the same column names (metabase#14854)", () => {
@@ -480,5 +563,133 @@ describe("scenarios > question > custom columns", () => {
       cy.findByText("Custom Expression").click();
     });
     cy.get("[contenteditable='true']").contains("Sum([MyCC [2021]])");
+  });
+
+  it.skip("should handle floating point numbers with '0' omitted (metabase#15741)", () => {
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    cy.get("[contenteditable='true']").type(".5 * [Discount]");
+    cy.findByPlaceholderText("Something nice and descriptive").type("Foo");
+    cy.findByText("Unknown Field: .5").should("not.exist");
+    cy.button("Done").should("not.be.disabled");
+  });
+
+  describe.skip("contentedtable field (metabase#15734)", () => {
+    beforeEach(() => {
+      // This is the default screen size but we need it explicitly set for this test because of the resize later on
+      cy.viewport(1280, 800);
+
+      openOrdersTable({ mode: "notebook" });
+      cy.findByText("Custom column").click();
+      popover().within(() => {
+        cy.get("[contenteditable='true']")
+          .as("formula")
+          .type("1+1")
+          .blur();
+      });
+      cy.findByPlaceholderText("Something nice and descriptive").type("Math");
+      cy.button("Done").should("not.be.disabled");
+    });
+
+    it("should not accidentally delete CC formula value and/or CC name (metabase#15734-1)", () => {
+      cy.get("@formula")
+        .click()
+        .type("{movetoend}{leftarrow}{movetostart}{rightarrow}{rightarrow}")
+        .blur();
+      cy.findByDisplayValue("Math");
+      cy.button("Done").should("not.be.disabled");
+    });
+
+    /**
+     * 1. Explanation for `cy.get("@formula").click();`
+     *  - Without it, test runner is too fast and the test resutls in false positive.
+     *  - This gives it enough time to update the DOM. The same result can be achieved with `cy.wait(1)`
+     */
+    it("should not erase CC formula and CC name when expression is incomplete (metabase#15734-2)", () => {
+      cy.get("@formula")
+        .click()
+        .type("{movetoend}{backspace}")
+        .blur();
+      cy.findByText("Expected expression");
+      cy.button("Done").should("be.disabled");
+      cy.get("@formula").click(); /* [1] */
+      cy.findByDisplayValue("Math");
+    });
+
+    it("should not erase CC formula and CC name on window resize (metabase#15734-3)", () => {
+      cy.viewport(1260, 800);
+      cy.get("@formula").click(); /* [1] */
+      cy.findByDisplayValue("Math");
+      cy.button("Done").should("not.be.disabled");
+    });
+  });
+
+  it.skip("should maintain data type (metabase#13122)", () => {
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']")
+        .type("case([Discount] > 0, [Created At], [Product → Created At])")
+        .blur();
+      cy.findByPlaceholderText("Something nice and descriptive").type("13112");
+      cy.button("Done").click();
+    });
+    cy.findByText("Filter").click();
+    popover()
+      .findByText("13112")
+      .click();
+    cy.findByPlaceholderText("Enter a number").should("not.exist");
+  });
+
+  it.skip("filter based on `concat` function should not offer numeric options (metabase#13217)", () => {
+    openPeopleTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']")
+        .type(`concat("State: ", [State])`)
+        .blur();
+      cy.findByPlaceholderText("Something nice and descriptive").type("13217");
+      cy.button("Done").click();
+    });
+    cy.findByText("Filter").click();
+    popover()
+      .findByText("13217")
+      .click();
+    cy.findByPlaceholderText("Enter a number").should("not.exist");
+  });
+
+  it.skip("custom expression helper shouldn't be visible when formula field is not in focus (metabase#15891)", () => {
+    openPeopleTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']").type(`rou{enter}1.5`, {
+        delay: 100,
+      });
+    });
+    cy.findByText("round([Temperature])");
+    cy.findByText(/Field formula/i).click(); // Click outside of formula field instead of blur
+    cy.findByText("round([Temperature])").should("not.exist");
+  });
+
+  it.skip("should work with `isNull` function (metabase#15922)", () => {
+    cy.intercept("POST", "/api/dataset").as("dataset");
+
+    openOrdersTable({ mode: "notebook" });
+    cy.findByText("Custom column").click();
+    popover().within(() => {
+      cy.get("[contenteditable='true']").type(`isnull([Discount])`, {
+        delay: 100,
+      });
+      cy.findByPlaceholderText("Something nice and descriptive").type(
+        "No discount",
+      );
+      cy.button("Done").click();
+    });
+    cy.button("Visualize").click();
+    cy.wait("@dataset").then(xhr => {
+      expect(xhr.response.body.error).to.not.exist;
+    });
+    cy.contains("37.65");
+    cy.findByText("No discount");
   });
 });

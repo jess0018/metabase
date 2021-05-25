@@ -244,7 +244,7 @@
   (deferred-tru "The url or image that you want to use as the favicon.")
   :visibility :public
   :type       :string
-  :default    "frontend_client/favicon.ico")
+  :default    "/app/assets/img/favicon.ico")
 
 (defsetting enable-password-login
   (deferred-tru "Allow logging in by email and password.")
@@ -341,7 +341,7 @@
   "Current password complexity requirements"
   :visibility :public
   :setter     :none
-  :getter     (constantly password/active-password-complexity))
+  :getter     password/active-password-complexity)
 
 (defsetting report-timezone-short
   "Current report timezone abbreviation"

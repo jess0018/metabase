@@ -229,7 +229,6 @@ describe("scenarios > question > native", () => {
     cy.findByText("Simple question").click();
     popover().within(() => {
       cy.findByText("Saved Questions").click();
-      cy.findByText("Robert Tableton's Personal Collection").click();
       cy.findByText(QUESTION).click();
     });
 
@@ -560,7 +559,7 @@ describe("scenarios > question > native", () => {
     popover()
       .findByText("Doohickey")
       .click();
-    cy.findByRole("button", { name: "Add filter" }).click();
+    cy.button("Add filter").click();
     // Rerun the query
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.wait("@dataset").wait("@dataset");
@@ -597,7 +596,7 @@ describe("scenarios > question > native", () => {
     popover()
       .findByText("Doohickey")
       .click();
-    cy.findByRole("button", { name: "Add filter" }).click();
+    cy.button("Add filter").click();
     cy.get(".NativeQueryEditor .Icon-play").click();
     cy.wait("@dataset").then(xhr => {
       expect(xhr.response.body.error).not.to.exist;
@@ -642,6 +641,86 @@ describe("scenarios > question > native", () => {
       popover()
         .find(".List-section")
         .should("have.length.gt", 1);
+    });
+  });
+
+  it.skip("should be able to add new columns after hiding some (metabase#15393)", () => {
+    cy.visit("/");
+    cy.icon("sql").click();
+    cy.get(".ace_content")
+      .as("editor")
+      .type("select 1 as visible, 2 as hidden");
+    cy.get(".NativeQueryEditor .Icon-play")
+      .as("runQuery")
+      .click();
+    cy.findByText("Settings").click();
+    cy.findByTestId("sidebar-left")
+      .as("sidebar")
+      .contains(/hidden/i)
+      .siblings(".Icon-close")
+      .click();
+    cy.get("@editor").type("{movetoend}, 3 as added");
+    cy.get("@runQuery").click();
+    cy.get("@sidebar").contains(/added/i);
+  });
+
+  ["off", "on"].forEach(testCase => {
+    const isFeatureFlagTurnedOn = testCase === "off" ? false : true;
+
+    describe.skip("Feature flag causes problems with Text and Number filters in Native query (metabase#15981)", () => {
+      beforeEach(() => {
+        mockSessionProperty(
+          "field-filter-operators-enabled?",
+          isFeatureFlagTurnedOn,
+        );
+
+        cy.visit("/");
+        cy.icon("sql").click();
+        cy.get(".ace_content").as("editor");
+
+        cy.intercept("POST", "/api/dataset").as("dataset");
+      });
+
+      it(`text filter should work with the feature flag turned ${testCase}`, () => {
+        cy.get("@editor").type(
+          "select * from PRODUCTS where CATEGORY = {{text_filter}}",
+          {
+            parseSpecialCharSequences: false,
+          },
+        );
+        cy.get("fieldset").type("Gizmo");
+        cy.get(".NativeQueryEditor .Icon-play").click();
+        cy.wait("@dataset");
+        cy.findByText("Rustic Paper Wallet");
+        cy.icon("contract").click();
+        cy.findByText("Showing 51 rows");
+        cy.get(".RunButton").should("not.exist");
+      });
+
+      it(`number filter should work with the feature flag turned ${testCase}`, () => {
+        cy.get("@editor").type(
+          "select * from ORDERS where QUANTITY = {{number_filter}}",
+          {
+            parseSpecialCharSequences: false,
+          },
+        );
+        cy.findByTestId("sidebar-right")
+          .as("sidebar")
+          .within(() => {
+            cy.get(".AdminSelect")
+              .contains("Text")
+              .click();
+          });
+        popover()
+          .contains("Number")
+          .click();
+        cy.get("fieldset").type("20");
+        cy.get(".NativeQueryEditor .Icon-play").click();
+        cy.wait("@dataset").then(xhr => {
+          expect(xhr.response.body.error).not.to.exist;
+        });
+        cy.get(".Visualization").contains("23.54");
+      });
     });
   });
 });

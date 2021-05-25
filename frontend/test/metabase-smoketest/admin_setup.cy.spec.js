@@ -478,7 +478,7 @@ describe("smoketest > admin_setup", () => {
         .last()
         .click();
       cy.findByText("Add filter").click();
-      cy.findByText("Visualize").click();
+      cy.button("Visualize").click();
 
       cy.findAllByText("Awesome Concrete Shoes");
       cy.findByText("Mediocre Wooden Bench").should("not.exist");
@@ -963,7 +963,7 @@ describe("smoketest > admin_setup", () => {
       cy.contains(normal.first_name).should("not.exist");
       cy.findByText("Our Analytics").should("not.exist");
       cy.findByText("Failed");
-      cy.contains("Password : did not match stored password");
+      cy.contains("Password: did not match stored password");
     });
   });
 });
