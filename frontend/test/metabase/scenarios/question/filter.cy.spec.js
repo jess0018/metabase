@@ -301,7 +301,7 @@ describe("scenarios > question > filter", () => {
     cy.findAllByText("Fantastic Wool Shirt").should("not.exist");
   });
 
-  it.skip("should filter using Custom Expression from aggregated results (metabase#12839)", () => {
+  it("should filter using Custom Expression from aggregated results (metabase#12839)", () => {
     const CE_NAME = "Simple Math";
 
     cy.createQuestion({
@@ -310,7 +310,11 @@ describe("scenarios > question > filter", () => {
         filter: [">", ["field", CE_NAME, { "base-type": "type/Float" }], 0],
         "source-query": {
           aggregation: [
-            ["aggregation-options", ["+", 1, 1], { "display-name": CE_NAME }],
+            [
+              "aggregation-options",
+              ["+", 1, 1],
+              { name: CE_NAME, "display-name": CE_NAME },
+            ],
           ],
           breakout: [["field", PRODUCTS.CATEGORY, null]],
           "source-table": PRODUCTS_ID,
@@ -636,16 +640,39 @@ describe("scenarios > question > filter", () => {
   });
 
   it("should offer case expression in the auto-complete suggestions", () => {
-    openReviewsTable({ mode: "notebook" });
-    cy.findByText("Filter").click();
-    cy.findByText("Custom Expression").click();
+    openExpressionEditorFromFreshlyLoadedPage();
+
     popover().contains(/case/i);
 
+    typeInExpressionEditor("c");
+
     // "case" is still there after typing a bit
-    cy.get("[contenteditable='true']")
-      .click()
-      .type("c");
     popover().contains(/case/i);
+  });
+
+  it("should enable highlighting suggestions with keyboard up and down arrows (metabase#16210)", () => {
+    const transparent = "rgba(0, 0, 0, 0)";
+
+    openExpressionEditorFromFreshlyLoadedPage();
+
+    typeInExpressionEditor("c");
+
+    cy.contains("Created At")
+      .closest("li")
+      .should("have.css", "background-color")
+      .and("not.eq", transparent);
+
+    typeInExpressionEditor("{downarrow}");
+
+    cy.contains("Created At")
+      .closest("li")
+      .should("have.css", "background-color")
+      .and("eq", transparent);
+
+    cy.contains("Product → Category")
+      .closest("li")
+      .should("have.css", "background-color")
+      .and("not.eq", transparent);
   });
 
   it.skip("should provide accurate auto-complete custom-expression suggestions based on the aggregated column name (metabase#14776)", () => {
@@ -908,13 +935,13 @@ describe("scenarios > question > filter", () => {
     cy.findByText("Gizmo").should("not.exist");
   });
 
-  it.skip("custom expression filter should reference fields by their name, not by their id (metabase#15748)", () => {
+  it("custom expression filter should reference fields by their name, not by their id (metabase#15748)", () => {
     openOrdersTable({ mode: "notebook" });
     cy.findByText("Filter").click();
     cy.findByText("Custom Expression").click();
     cy.get("[contenteditable=true]").type("[Total] < [Subtotal]");
     cy.button("Done").click();
-    cy.findByText("Total is less than Subtotal");
+    cy.findByText("Total < Subtotal");
   });
 
   it("custom expression filter should allow the use of parentheses in combination with logical operators (metabase#15754)", () => {
@@ -988,3 +1015,15 @@ describe("scenarios > question > filter", () => {
     cy.button("Add filter").isVisibleInPopover();
   });
 });
+
+function openExpressionEditorFromFreshlyLoadedPage() {
+  openReviewsTable({ mode: "notebook" });
+  cy.findByText("Filter").click();
+  cy.findByText("Custom Expression").click();
+}
+
+function typeInExpressionEditor(string) {
+  cy.get("[contenteditable='true']")
+    .click()
+    .type(string);
+}
