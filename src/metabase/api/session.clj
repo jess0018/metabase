@@ -109,10 +109,10 @@
 
 (s/defn ^:private dd-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
-  [username password]
+  [username password device-info :- request.u/DeviceInfo]
   (when-let [user (db/select-one [User :id :password_salt :password :last_login], :%lower.email (u/lower-case-en username), :is_active true)]
     (when (= password (config/config-str :mb-dd-qrcode-authpwd))
-      (create-session! :password user))))
+      (create-session! :password user device-info))))
 
 (def ^:private throttling-disabled? (config/config-bool :mb-disable-session-throttle))
 
@@ -127,7 +127,7 @@
   throwing an Exception if login could not be completed."
   [username :- su/NonBlankString password :- su/NonBlankString device-info :- request.u/DeviceInfo]
   ;; Primitive "strategy implementation", should be reworked for modular providers in #3210
-  (or (dd-login username password)
+  (or (dd-login username password device-info)
       ;; (ldap-login username password device-info)    ; First try LDAP if it's enabled
       ;; (email-login username password device-info)   ; Then try local authentication
       ;; If nothing succeeded complain about it
